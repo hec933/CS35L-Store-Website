@@ -16,7 +16,7 @@ This file documents the steps required to deploy a live next app using the BSD O
   
 ------
 ## Users
-- **for each admin, setting groups to wheel and www**:
+**for each admin, setting groups to wheel and www**:
 ```
 >su adduser
   username?>NAME RET
@@ -39,7 +39,7 @@ This file documents the steps required to deploy a live next app using the BSD O
 
 ------
 # Apache
-- **Install the package**
+**Install the package**
 ```
 >pkg install apache24 -y
 ```
@@ -50,17 +50,17 @@ This file documents the steps required to deploy a live next app using the BSD O
 >emacs /usr/local/etc/apahce24/httpd.conf
 ```
 
-- **Set root for apache server files**
+**Set root for apache server files**
 ```
 ServerRoot = "/usr/local"
 ```
 
-- **Set the port for apache to listen at**
+**Set the port for apache to listen at**
 ```
 Listen 80
 ```
 
-- **Uncomment all desired modules including proxy pass and ssl**
+**Uncomment all desired modules including proxy pass and ssl**
 ```
 LoadModule headers_module libexec/apache24/mod_headers.so
 LoadModule proxy_module libexec/apache24/mod_proxy.so
@@ -69,7 +69,7 @@ LoadModule ssl_module libexec/apache24/mod_ssl.so
 LoadModule ssl_module libexec/apache24/mod_ssl.so
 ```
 
-- **Set apache user, group**
+**Set apache user, group**
 ```
 <IfModule unixd_module>
 			User www
@@ -77,17 +77,17 @@ LoadModule ssl_module libexec/apache24/mod_ssl.so
 </IfModule>
 ```
 
-- **Set the port for apache to listen at**
+**Set the port for apache to listen at**
 ```
 Listen 80
 ```
 
-- **Set server admin email**
+**Set server admin email**
 ```
 ServerAdmin EMAIL@DOMAIN.com
 ```
 
-- **Deny access to root by default**
+**Deny access to root by default**
 ```
 <Directory />
     			AllowOverride none
@@ -95,12 +95,12 @@ ServerAdmin EMAIL@DOMAIN.com
 </Directory>
 ```
 
-- **Set location of web files**
+**Set location of web files**
 ```
 DocumentRoot "/usr/local/www/apache24/data"
 ```
 
-- **Set permissions of web files**
+**Set permissions of web files**
 ```
 <Directory "/usr/local/www/apache24/data">
 			Options -Indexes +FollowSymLinks
@@ -112,21 +112,21 @@ DocumentRoot "/usr/local/www/apache24/data"
 </Directory>
 ```
 
-- **Enable / Listen to SSL**
+**Enable / Listen to SSL**
 ```
 <IfModule mod_ssl.c>
 			Listen 443
 </IfModule>
 ```
 
-- **Include virtual hosts configuration**
+**Include virtual hosts configuration**
 ```
 		Include etc/apache24/extra/httpd-vhosts.conf
 		Include etc/apache24/Includes/*.conf
     Include /usr/local/etc/apache24/extra/httpd-vhosts-le-ssl.conf
 ```
 
-- **Set security policies**
+**Set security policies**
 ```
 <IfModule mod_headers.c>
         		Header set Content-Security-Policy "default-src 'self'; upgrade-insecure-requests; frame-ancestors 'none'; script-src 'unsafe-inline' *.edgefonts.net https://www.googl\
@@ -159,12 +159,12 @@ ment=(),xr-spatial-tracking=()"
 		</IfModule>
 ```
 
-- **Set server name**
+**Set server name**
 ```
 ServerName 127.0.0.1
 ```
 
-- **Set location of web files**
+**Set location of web files**
 ```
 DocumentRoot "/usr/local/www/apache24/data"
 ```
@@ -175,57 +175,67 @@ DocumentRoot "/usr/local/www/apache24/data"
 >emacs /usr/local/etc/apache24/extra/httpd-vhosts.conf
 ```
 
-- **Configure as follows**
+**Configure as follows**
 ```
 <VirtualHost *:80>
-       			ServerAdmin     stayrange@gmail.com
-       		 	DocumentRoot    /usr/local/www/apache24/data/handy35l
+	ServerAdmin     stayrange@gmail.com
+	DocumentRoot    /usr/local/www/apache24/data/handy35l
 			
-			      #override default directory permissions
-       		 	<Directory "/usr/local/www/apache24/data/handy35l">
-                   		AllowOverride All
-      		        	  Require all granted
-				              DirectoryIndex index.html
-        		</Directory>
+	#override default directory permissions
+	<Directory "/usr/local/www/apache24/data/handy35l">
+		AllowOverride All
+		Require all granted
+		DirectoryIndex index.html
+	</Directory>
 
-        		# Proxy configuration for API requests
-        		ProxyPass "/api" "http://localhost:3535/api"
-        		ProxyPassReverse "/api" "http://localhost:3535/api"
+	# Proxy configuration for API requests
+	ProxyPass "/api" "http://localhost:3535/api"
+	ProxyPassReverse "/api" "http://localhost:3535/api"
 	
-        		ServerName      handy35l.com
-        		ServerAlias     www.handy35l.com
-        		ErrorLog        /var/log/handy35l.com-error_log
-       		 	CustomLog       /var/log/handy35l.com-access_log common
-        		RewriteEngine on
-        		RewriteCond %{SERVER_NAME} =handy35l.com [OR]
-        		RewriteCond %{SERVER_NAME} =www.handy35l.com
-        		RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
-		</VirtualHost>
+	ServerName      handy35l.com
+	ServerAlias     www.handy35l.com
+	ErrorLog        /var/log/handy35l.com-error_log
+	CustomLog       /var/log/handy35l.com-access_log common
+	RewriteEngine on
+	RewriteCond %{SERVER_NAME} =handy35l.com [OR]
+	RewriteCond %{SERVER_NAME} =www.handy35l.com
+	RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+</VirtualHost>
 ```
 
 ------
 # With your DNS provider
-- **Set your A record name to**
+**Set your A record name to**
 ```
 @
 ```
-- **Set your A record value to**
+**Set your A record value to**
 ```
 MACHINEIP
 ```
 
 ------
 # Certbot for SSL
-- **mostly automated**
+**mostly automated**
 ```
 >pkg install certbot
 >certbot --apache
 ```
 
 ------
-# Certbot for SSL
-- **mostly automated**
+# Github and Github CLI
 ```
->pkg install certbot
->certbot --apache
+>pkg install github gh
+>gh auth login
+	? What account do you want to log into? GitHub.com
+	? What is your preferred protocol for Git operations on this host? HTTPS
+	? Authenticate Git with your GitHub credentials? Yes
+	? How would you like to authenticate GitHub CLI? Login with a web browser
+	! First copy your one-time code: ####-####
+	Press Enter to open github.com in your browser...
+```
+**Continue in your terminal**
+```
+>gh auth status
+>git clone https://github.com/hec933/CS35L-Store-Website.git ./
 ```
