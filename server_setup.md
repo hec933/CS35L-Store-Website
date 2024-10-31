@@ -123,17 +123,17 @@ DocumentRoot "/usr/local/www/apache24/data"
 ```
 		Include etc/apache24/extra/httpd-vhosts.conf
 		Include etc/apache24/Includes/*.conf
-    Include /usr/local/etc/apache24/extra/httpd-vhosts-le-ssl.conf
+    		Include /usr/local/etc/apache24/extra/httpd-vhosts-le-ssl.conf
 ```
 
 **Set security policies**
 ```
 <IfModule mod_headers.c>
-        		Header set Content-Security-Policy "default-src 'self'; upgrade-insecure-requests; frame-ancestors 'none'; script-src 'unsafe-inline' *.edgefonts.net https://www.googl\
+	Header set Content-Security-Policy "default-src 'self'; upgrade-insecure-requests; frame-ancestors 'none'; script-src 'unsafe-inline' *.edgefonts.net https://www.googl\
 etagmanager.com/gtag/ https://www.google.com/recaptcha/api.js https://www.gstatic.com/recaptcha/releases/; object-src 'none'; base-uri 'self'; frame-src https://www.google.com\
 /;"
-        		Header always edit Set-Cookie (.*) "$1; HttpOnly; Secure"
-        		Header always set Permissions-Policy "accelerometer=(),ambient-light-sensor=(),attribution-reporting=(),autoplay=(),battery=(),bluetooth=(),browsing-topics=(),camera=(\
+	Header always edit Set-Cookie (.*) "$1; HttpOnly; Secure"
+	Header always set Permissions-Policy "accelerometer=(),ambient-light-sensor=(),attribution-reporting=(),autoplay=(),battery=(),bluetooth=(),browsing-topics=(),camera=(\
 ),ch-device-memory=(),ch-downlink=(),ch-dpr=(),ch-ect=(),ch-lang=(),ch-prefers-color-scheme=(),ch-rtt=(),ch-save-data=(),ch-ua=(),ch-ua-arch=(),ch-ua-bitness=(),ch-ua-full=(),\
 ch-ua-full-version=(),ch-ua-full-version-list=(),ch-ua-mobile=(),ch-ua-model=(),ch-ua-platform=(),ch-ua-platform-version=(),ch-ua-reduced=(),ch-ua-wow64=(),ch-viewport-height=\
 (),ch-viewport-width=(),ch-width=(),clipboard-read=(),clipboard-write=(),conversion-measurement=(),cross-origin-isolated=(),direct-sockets=(),display-capture=(),document-domai\
@@ -142,21 +142,21 @@ eolocation=(),gyroscope=(),hid=(),idle-detection=(),interest-cohort=(),join-ad-i
 n-override=(),otp-credentials=(),payment=(),picture-in-picture=(),publickey-credentials-get=(),run-ad-auction=(),screen-wake-lock=(),serial=(),shared-autofill=(),shared-storag\
 e=(),speaker-selection=(),storage-access-api=(),sync-script=(),sync-xhr=(),trust-token-redemption=(),unload=(),usb=(),vertical-scroll=(),wake-lock=(),web-share=(),window-place\
 ment=(),xr-spatial-tracking=()"
-        		Header set X-Content-Type-Options "nosniff"
-        		Header set X-XSS-Protection "0"
-        		#Header set X-XSS-Protection "1; mode=block"
-        		Header set Referrer-Policy "strict-origin"
-        		Header always set X-Frame-Options: "SAMEORIGIN"
-        		Header always set Strict-Transport-Security: "max-age=63072000; includeSubDomains; preload"
-        		SetEnv modHeadersAvailable true
-		</IfModule>
+	Header set X-Content-Type-Options "nosniff"
+	Header set X-XSS-Protection "0"
+	#Header set X-XSS-Protection "1; mode=block"
+        Header set Referrer-Policy "strict-origin"
+        Header always set X-Frame-Options: "SAMEORIGIN"
+        Header always set Strict-Transport-Security: "max-age=63072000; includeSubDomains; preload"
+        SetEnv modHeadersAvailable true
+</IfModule>
 
-		#Enable rules
-		<IfModule security2_module>
-       			SecRuleEngine on
-        		ServerTokens Full
-        		SecServerSignature " "
-		</IfModule>
+#Enable rules
+<IfModule security2_module>
+	SecRuleEngine on
+	ServerTokens Full
+	SecServerSignature " "
+</IfModule>
 ```
 
 **Set server name**
