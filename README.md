@@ -6,7 +6,7 @@
 - This project implements an online store website using Next.js. It provides basic functionality for users to view products and add them to the shopping cart.
 - We are implementing the checkout process for products added to the shopping cart.
 - We are integrating the login feature by utilizing a user authentication API.
-- Utilized : JavaScript, TypeScript, Next.js, React, Firebase
+- Utilized : JavaScript, TypeScript, Next.js, React, Vercel, Firebase
 
 ------
 ## Setup
