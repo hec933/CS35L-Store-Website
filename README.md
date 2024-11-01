@@ -53,8 +53,7 @@ Creating a new Next.js app in /Users/teo/Desktop/store-cs35.
 npx run dev
 ```
 ```
-   ▲ Next.js 15.0.2 (Turbopack)
-   - Local:  http://localhost:3001
+   - Local:  http://localhost:3535
 ```
 
 ## GitHub Pull Guide
