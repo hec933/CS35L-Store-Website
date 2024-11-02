@@ -25,11 +25,23 @@ brew install git
 brew install node
 ```
 
+- **firebase (homebrew)**:
+```
+npm install firebase
+```
+
 - **ESLint and Prettier  (homebrew)**:
 ```
 npm install eslint prettier -D
 ```
 
+- **Prisma (local test) (homebrew)**:
+```
+npm install -D prisma
+```
+```
+npx prisma init
+```
 
 ------
 ## Project Start

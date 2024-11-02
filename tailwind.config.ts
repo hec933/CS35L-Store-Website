@@ -12,7 +12,13 @@ const config: Config = {
                 background: "var(--background)",
                 foreground: "var(--foreground)",
                 uclaBlue: "#2774AE", // ucla blue 
-                uclaGold: "#FFD100", // ucla gold 
+                darkestBlue: "#003B5C", // Darkest blue 
+                darkerBlue: "#005587", // Darker blue 
+                lighterBlue: "#8BB8E8", // Lighter blue 
+                lightestBlue: "#DAEBFE", // Darkest blue 
+                uclaGold: "#FFD100", // ucla gold
+                darkestGold: "#FFB81C", // Darkest gold
+                darkerGold: "#FFC72C", // Darker gold    
             },
         },
     },

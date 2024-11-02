@@ -21,7 +21,7 @@ const Navbar = () => {
                     <Link href="/">Home</Link>
                 </div>
 
-                {/* handle Menu (mobile)*/}
+                {/* handle Menu (mobile media query) */}
                 <div className="text-2xl sm:hidden">
                     {menu === false ? 
                     <button onClick={handleMenu}>+</button> :
