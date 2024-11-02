@@ -43,6 +43,12 @@ npm install -D prisma
 npx prisma init
 ```
 
+- **react hook form (homebrew)**:
+```
+npm install react-hook-form --legacy-peer-deps
+```
+
+
 ------
 ## Project Start
 ```
