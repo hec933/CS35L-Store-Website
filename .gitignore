@@ -42,3 +42,13 @@ next-env.d.ts
 # Prisma
 # prisma/*.db
 # prisma/migrations/
+
+
+# Local VS2022 files
+# Don't include these files
+DocumentLayout.json
+*.vsidx 
+ProjectSettings.json
+*.sqlite* 
+VSWorkspaceState.json 
+.wsuo*
