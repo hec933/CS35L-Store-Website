@@ -46,7 +46,7 @@ next-env.d.ts
 
 # Local VS2022 files
 # Don't include these files
-DocumentLayout.json
+*DocumentLayout.json
 *.vsidx 
 ProjectSettings.json
 *.sqlite* 
