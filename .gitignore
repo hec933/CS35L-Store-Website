@@ -52,3 +52,5 @@ ProjectSettings.json
 *.sqlite* 
 VSWorkspaceState.json 
 .wsuo*
+
+*storybook.log
