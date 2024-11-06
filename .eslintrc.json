@@ -5,16 +5,7 @@
         "plugin:storybook/recommended"
     ],
     "rules": {
-        "import/order": [
-            "error",
-            {
-                "newlines-between": "always",
-                "alphabetize": {
-                    "order": "asc",
-                    "caseInsensitive": true
-                }
-            }
-        ],
+        "import/order": "off",
         "indent": ["error", 4]
     }
 }

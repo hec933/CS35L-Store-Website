@@ -13,6 +13,16 @@
 
 ---
 
+## Reference Site
+
+-   [Design System](https://primer.style/components)
+-   [tailwindcss](https://tailwindcss.com/docs)
+-   [storybook](https://storybook.js.org/)
+-   [Google material Symbol](https://fonts.google.com/iconss)
+-   [Day.js](https://day.js.org/docs/en/installation/installation)
+
+---
+
 ## Setup
 
 -   **Homebrew (macOS terminal)**:
@@ -85,7 +95,7 @@ npm install dayjs --save
 ## Project Start
 
 ```
-npx create-next-app@latest ./
+npm install react@18.2.0 react-dom@18.2.0 next@14 --save
 ```
 
 ```
