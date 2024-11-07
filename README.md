@@ -43,26 +43,10 @@ brew install git
 brew install node
 ```
 
--   **firebase (homebrew)**:
-
-```
-npm install firebase
-```
-
 -   **ESLint and Prettier (homebrew)**:
 
 ```
 npm install eslint prettier -D
-```
-
--   **Prisma (local test) (homebrew)**:
-
-```
-npm install -D prisma
-```
-
-```
-npx prisma init
 ```
 
 -   **react hook form (homebrew)**:
@@ -90,12 +74,11 @@ npm install classnames
 npm install dayjs --save
 ```
 
----
-
 ## Project Start
 
 ```
-npm install react@18.2.0 react-dom@18.2.0 next@14 --save
+npm install next@14 scroll-lock sass && npm install --save-dev @types/scroll-lock
+
 ```
 
 ```
@@ -108,7 +91,14 @@ npm install react@18.2.0 react-dom@18.2.0 next@14 --save
 Creating a new Next.js app in /Users/teo/Desktop/store-cs35.
 ```
 
-## Project Run
+---
+
+## Project Run (Clone)
+
+```
+npm install next@14 scroll-lock sass && npm install --save-dev @types/scroll-lock
+
+```
 
 ```
 npx run dev

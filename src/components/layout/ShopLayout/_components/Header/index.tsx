@@ -1,11 +1,15 @@
 import Image from 'next/image'
+import { ReactNode } from 'react'
 import Search from './_components/Search'
 
 import Text from '@/components/common/Text'
 import Container from '@/components/layout/Container'
 import Wrapper from '@/components/layout/Wrapper'
 
-export default function Header() {
+// Aside bar children
+type Props = { children: ReactNode }
+
+export default function Header({ children }: Props) {
     return (
         <div className="sticky top-0 z-10 bg-lightestBlue border-b border-b-uclaBlue">
             <Wrapper>
@@ -14,17 +18,17 @@ export default function Header() {
                         {/* Logo */}
                         <div className="flex items-center">
                             <Image
-                                src="/logo.jpg" // logo image
+                                src="/logo.jpg" // 로고 이미지 파일 경로
                                 alt="Store Logo"
-                                width={100}
-                                height={100}
+                                width={100} // 이미지 너비
+                                height={100} // 이미지 높이
                             />
                             <Text
                                 size="4xl"
                                 style={{
                                     fontFamily: `'Black Han Sans', sans-serif`,
                                 }}
-                                className="ml-1"
+                                className="ml-1" // 텍스트와 이미지 사이의 간격 조정
                             >
                                 {/* Store Font */}
                             </Text>
@@ -65,6 +69,7 @@ export default function Header() {
                     </div>
                 </Container>
             </Wrapper>
+            {children}
         </div>
     )
 }

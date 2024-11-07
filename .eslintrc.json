@@ -6,6 +6,6 @@
     ],
     "rules": {
         "import/order": "off",
-        "indent": ["error", 4]
+        "indent": "off"
     }
 }
