@@ -20,6 +20,53 @@
 -   [storybook](https://storybook.js.org/)
 -   [Google material Symbol](https://fonts.google.com/iconss)
 -   [Day.js](https://day.js.org/docs/en/installation/installation)
+-   [Scroll-lock](https://www.npmjs.com/package/scroll-lock)
+-   [Faker.js](https://fakerjs.dev/guide/)
+-   [Intersection Observer Docs](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
+-   [React Intersection Observer](https://www.npmjs.com/package/react-intersection-observer)
+-   [React Responsive Carousel](https://react-responsive-carousel.js.org/)
+
+---
+
+## Project Start
+
+```
+npm install --legacy-peer-deps
+```
+
+```
+npm run dev
+```
+
+-   **storybook start**:
+
+```
+npm run storybook
+```
+
+---
+
+## GitHub Pull Guide
+
+```
+git remote -v
+```
+
+-   **Fetch**
+
+```
+git fetch origin
+```
+
+-   **Pull**
+
+```
+git pull origin main
+```
+
+```
+git status
+```
 
 ---
 
@@ -43,13 +90,13 @@ brew install git
 brew install node
 ```
 
--   **ESLint and Prettier (homebrew)**:
+-   **ESLint and Prettier**:
 
 ```
 npm install eslint prettier -D
 ```
 
--   **react hook form (homebrew)**:
+-   **react hook form**:
 
 ```
 npm install react-hook-form --legacy-peer-deps
@@ -74,58 +121,23 @@ npm install classnames
 npm install dayjs --save
 ```
 
-## Project Start
+-   **Scroll-lock**:
 
 ```
-npm install next@14 scroll-lock sass && npm install --save-dev @types/scroll-lock
-
+npm install scroll-lock
+npm install --save-dev @types/scroll-lock
 ```
 
-```
-✔ Would you like to use TypeScript? … Yes
-✔ Would you like to use ESLint? … Yes
-✔ Would you like to use Tailwind CSS? … Yes
-✔ Would you like your code inside a `src/` directory? … Yes
-✔ Would you like to use App Router? (recommended) … No
-✔ Would you like to customize the import alias (@/* by default)? … No
-Creating a new Next.js app in /Users/teo/Desktop/store-cs35.
-```
-
----
-
-## Project Run (Clone)
+-   **Mock Data Setup**:
 
 ```
-npm install next@14 scroll-lock sass && npm install --save-dev @types/scroll-lock
-
+npm install @faker-js/faker --save-dev
 ```
 
-```
-npx run dev
-```
+-   **Infinite Scroll and Carousel**:
 
 ```
-   - Local:  http://localhost:3535
-```
+npm install react-intersection-observer
+npm install react-responsive-carousel --save
 
-## GitHub Pull Guide
-
-```
-git remote -v
-```
-
--   **Fetch**
-
-```
-git fetch origin
-```
-
--   **Pull**
-
-```
-git pull origin main
-```
-
-```
-git status
 ```

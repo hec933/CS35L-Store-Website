@@ -1,9 +1,11 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import Shop from ".";
+import { faker } from '@faker-js/faker'
+import type { Meta, StoryObj } from '@storybook/react'
+import Shop from '.'
+
 const meta = {
-    title: "Shop",
+    title: 'Shop',
     component: Shop,
-    tags: ["autodocs"],
+    tags: ['autodocs'],
     args: {},
     decorators: [
         (Story) => (
@@ -12,23 +14,26 @@ const meta = {
             </div>
         ),
     ],
-} satisfies Meta<typeof Shop>;
-export default meta;
-type Story = StoryObj<typeof meta>;
+} satisfies Meta<typeof Shop>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
 export const DefaultShop: Story = {
     args: {
-        name: "Shop",
+        name: 'Shop',
         productCount: 999,
         followerCount: 999,
-        type: "row",
+        type: 'row',
     },
-};
+}
+
 export const ImagedShop: Story = {
     args: {
-        name: "Shop",
+        name: 'Shop',
         productCount: 999,
         followerCount: 999,
-        type: "row",
-        profileImageUrl: "https://picsum.photos/200",
+        type: 'row',
+        profileImageUrl: faker.image.dataUri(),
     },
-};
+}
