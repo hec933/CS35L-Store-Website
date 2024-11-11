@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    .font-noto-sans {
+        font-family: 'Noto Sans', 'Noto Sans KR', sans-serif;
+    }
+}

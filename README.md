@@ -1,91 +1,143 @@
-# Store - CS 35L (Team: Handy) 
-- Andy Alcazar, Gregory Weinrod, Hector Gil-Morales, Taewook Park
+# Store - CS 35L (Team: Handy)
 
------
-## Project Overview 
-- This project implements an online store website using Next.js. It provides basic functionality for users to view products and add them to the shopping cart.
-- We are implementing the checkout process for products added to the shopping cart.
-- We are integrating the login feature by utilizing a user authentication API.
-- Utilized : JavaScript, TypeScript, Next.js, React, Vercel, Firebase
+-   Andy Alcazar, Gregory Weinrod, Hector Gil-Morales, Taewook Park
 
-------
+---
+
+## Project Overview
+
+-   This project implements an online store website using Next.js. It provides basic functionality for users to view products and add them to the shopping cart.
+-   We are implementing the checkout process for products added to the shopping cart.
+-   We are integrating the login feature by utilizing a user authentication API.
+-   Utilized : JavaScript, TypeScript, Next.js, React, Vercel, Firebase
+
+---
+
+## Reference Site
+
+-   [Design System](https://primer.style/components)
+-   [tailwindcss](https://tailwindcss.com/docs)
+-   [storybook](https://storybook.js.org/)
+-   [Google material Symbol](https://fonts.google.com/iconss)
+-   [Day.js](https://day.js.org/docs/en/installation/installation)
+-   [Scroll-lock](https://www.npmjs.com/package/scroll-lock)
+-   [Faker.js](https://fakerjs.dev/guide/)
+-   [Intersection Observer Docs](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
+-   [React Intersection Observer](https://www.npmjs.com/package/react-intersection-observer)
+-   [React Responsive Carousel](https://react-responsive-carousel.js.org/)
+
+---
+
+## Project Start
+
+```
+npm install --legacy-peer-deps
+```
+
+```
+npm run dev
+```
+
+-   **storybook start**:
+
+```
+npm run storybook
+```
+
+---
+
+## GitHub Pull Guide
+
+```
+git remote -v
+```
+
+-   **Fetch**
+
+```
+git fetch origin
+```
+
+-   **Pull**
+
+```
+git pull origin main
+```
+
+```
+git status
+```
+
+---
+
 ## Setup
-- **Homebrew (macOS terminal)**:
+
+-   **Homebrew (macOS terminal)**:
+
 ```
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-- **git (homebrew)**:
+-   **git (homebrew)**:
+
 ```
 brew install git
 ```
 
-- **node.js (homebrew)**:
+-   **node.js (homebrew)**:
+
 ```
 brew install node
 ```
 
-- **firebase (homebrew)**:
-```
-npm install firebase
-```
+-   **ESLint and Prettier**:
 
-- **ESLint and Prettier  (homebrew)**:
 ```
 npm install eslint prettier -D
 ```
 
-- **Prisma (local test) (homebrew)**:
-```
-npm install -D prisma
-```
-```
-npx prisma init
-```
+-   **react hook form**:
 
-- **react hook form (homebrew)**:
 ```
 npm install react-hook-form --legacy-peer-deps
 ```
 
+-   **storybook**:
 
-------
-## Project Start
 ```
-npx create-next-app@latest ./
-```
-```
-✔ Would you like to use TypeScript? … No / **Yes**
-✔ Would you like to use ESLint? … No / **Yes**
-✔ Would you like to use Tailwind CSS? … No / **Yes**
-✔ Would you like your code inside a `src/` directory? … No / **Yes**
-✔ Would you like to use App Router? (recommended) … No / **Yes**
-✔ Would you like to use Turbopack for next dev? … No / **Yes**
-✔ Would you like to customize the import alias (@/* by default)? … No / **Yes**
-✔ What import alias would you like configured? … @/*
-Creating a new Next.js app in /Users/teo/Desktop/store-cs35.
+npx storybook@latest init
+npm install storybook@latest
 ```
 
-## Project Run
+-   **classnames**:
+
 ```
-npx run dev
-```
-```
-   - Local:  http://localhost:3535
+npm install classnames
 ```
 
-## GitHub Pull Guide
+-   **day.js**:
+
 ```
-git remote -v
+npm install dayjs --save
 ```
-- **Fetch**
+
+-   **Scroll-lock**:
+
 ```
-git fetch origin
+npm install scroll-lock
+npm install --save-dev @types/scroll-lock
 ```
-- **Pull**
+
+-   **Mock Data Setup**:
+
 ```
-git pull origin main
+npm install @faker-js/faker --save-dev
 ```
+
+-   **Infinite Scroll and Carousel**:
+
 ```
-git status
+npm install react-intersection-observer
+npm install react-responsive-carousel --save
+
 ```
