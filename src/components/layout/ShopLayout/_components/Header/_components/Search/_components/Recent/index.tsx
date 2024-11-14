@@ -1,7 +1,14 @@
+import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
 
 import Text from '@/components/common/Text'
-import { getRecentKeywords, clearRecentKeyword } from '@/utils/localstorage'
+import {
+    addRecentKeyword,
+    clearRecentKeyword,
+    getRecentKeywords,
+} from '@/utils/localstorage'
+
+// Recent Searches Bar
 
 // Props type for the Recent component
 type Props = {
@@ -9,6 +16,9 @@ type Props = {
 }
 
 export default function Recent({ handleClose }: Props) {
+    // Use the Next.js router to handle page navigation
+    const router = useRouter()
+
     // Array to store recent search terms
     const [recents, setRecents] = useState<string[]>([])
 
@@ -37,11 +47,17 @@ export default function Recent({ handleClose }: Props) {
                 ) : (
                     // If there are recent searches, display them in a scrollable container
                     <div className="h-full overflow-scroll pb-8">
-                        {recents.map((recent, idx) => (
+                        {recents.map((recent) => (
                             <Text
                                 size="sm"
-                                key={idx}
-                                className="block my-1 truncate"
+                                key={recent}
+                                className="block my-1 truncate cursor-pointer"
+                                onClick={() => {
+                                    addRecentKeyword(recent)
+                                    router.push(
+                                        `/search?query=${encodeURIComponent(recent)}`,
+                                    )
+                                }}
                             >
                                 {recent}
                             </Text>

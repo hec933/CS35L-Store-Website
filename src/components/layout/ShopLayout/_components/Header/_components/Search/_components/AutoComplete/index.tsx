@@ -1,8 +1,10 @@
 import { throttle } from 'lodash'
+import { useRouter } from 'next/router'
 import { useEffect, useMemo, useState } from 'react'
 
 import Text from '@/components/common/Text'
 import { getProductsByKeyword } from '@/repository/products/getProductsByKeyword'
+import { addRecentKeyword } from '@/utils/localstorage'
 
 // Props type for the AutoComplete component
 type Props = {
@@ -11,6 +13,9 @@ type Props = {
 }
 
 export default function AutoComplete({ query, handleClose }: Props) {
+    // Use the Next.js router to handle page navigation
+    const router = useRouter()
+
     // State to store autocomplete keywords
     const [keywords, setKeywords] = useState<string[]>([])
 
@@ -73,13 +78,19 @@ export default function AutoComplete({ query, handleClose }: Props) {
                 ) : (
                     // If there are autocomplete keywords, display them in a scrollable container
                     <div className="h-full overflow-scroll pb-8">
-                        {keywords.map((recent, idx) => (
+                        {keywords.map((keyword) => (
                             <Text
                                 size="sm"
-                                key={idx}
-                                className="block my-1 truncate"
+                                key={keyword}
+                                className="block my-1 truncate cursor-pointer"
+                                onClick={() => {
+                                    addRecentKeyword(keyword)
+                                    router.push(
+                                        `/search?query=${encodeURIComponent(keyword)}`,
+                                    )
+                                }}
                             >
-                                {recent}
+                                {keyword}
                             </Text>
                         ))}
                     </div>

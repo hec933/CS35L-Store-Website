@@ -17,7 +17,7 @@ export async function getProductsByKeyword({
 }: Params): Promise<{ data: Product[] }> {
     // Create an array of mock product data with length based on the page range
     const data: Product[] = Array.from({
-        length: (toPage - fromPage) * 10,
+        length: (toPage - fromPage) * 20,
     }).map(() =>
         getMockProductData({
             // Append the query to a generated product name

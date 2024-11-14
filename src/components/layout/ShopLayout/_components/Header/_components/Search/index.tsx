@@ -1,11 +1,16 @@
 import classNames from 'classnames'
+import { useRouter } from 'next/router'
 import { useState } from 'react'
+
 import AutoComplete from './_components/AutoComplete'
 import Recent from './_components/Recent'
 import { addRecentKeyword } from '@/utils/localstorage'
 
 // Search Bar Component
 export default function Search() {
+    // Use the Next.js router to handle page navigation
+    const router = useRouter()
+
     // State to store search input and manage focus
     const [search, setSearch] = useState('')
     const [isFocused, setIsFocused] = useState(false)
@@ -18,7 +23,14 @@ export default function Search() {
                     className="flex justify-between"
                     onSubmit={(e) => {
                         e.preventDefault() // Prevent the default form submission behavior
-                        addRecentKeyword(search) // Add the current search term to the list of recent keywords
+
+                        // Add the current search term to the list of recent keywords
+                        addRecentKeyword(search)
+
+                        // Navigate to the search results page with the search query
+                        router.push(
+                            `/search?query=${encodeURIComponent(search)}`,
+                        )
                     }}
                 >
                     {/* Search input field */}
@@ -40,7 +52,6 @@ export default function Search() {
             </div>
 
             {/* Dropdown container for search suggestions */}
-            {/* 검색 제안 목록을 위한 드롭다운 컨테이너 */}
             <div
                 className={classNames(
                     'absolute w-full bg-white border border-lighterBlue mt-2 h-96 rounded-lg',
