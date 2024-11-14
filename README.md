@@ -25,6 +25,7 @@
 -   [Intersection Observer Docs](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
 -   [React Intersection Observer](https://www.npmjs.com/package/react-intersection-observer)
 -   [React Responsive Carousel](https://react-responsive-carousel.js.org/)
+-   [Lodash](https://lodash.com/docs/#throttle)
 
 ---
 
@@ -140,4 +141,10 @@ npm install @faker-js/faker --save-dev
 npm install react-intersection-observer
 npm install react-responsive-carousel --save
 
+```
+
+-   **Lodash**:
+
+```
+npm i lodash
 ```
