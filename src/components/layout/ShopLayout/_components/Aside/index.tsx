@@ -24,7 +24,9 @@ export default function Aside() {
                             className="material-symbols-outlined"
                             style={{ fontSize: '0.725rem' }}
                         >
-                            favorite
+                            <span className="material-symbols-outlined">
+                                shopping_cart
+                            </span>
                         </span>
                         0
                     </Text>

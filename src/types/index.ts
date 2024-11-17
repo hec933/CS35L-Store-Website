@@ -13,3 +13,12 @@ export type Product = {
     createdBy: string
     purchaseBy: string | null
 }
+
+// Shop type
+export type Shop = {
+    id: string
+    name: string
+    imageUrl: string | null
+    introduce: string | null
+    createdAt: string
+}

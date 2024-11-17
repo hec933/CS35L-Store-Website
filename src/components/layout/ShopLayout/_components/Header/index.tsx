@@ -18,17 +18,17 @@ export default function Header({ children }: Props) {
                         {/* Logo */}
                         <div className="flex items-center">
                             <Image
-                                src="/logo.jpg" // 로고 이미지 파일 경로
+                                src="/logo.jpg"
                                 alt="Store Logo"
-                                width={100} // 이미지 너비
-                                height={100} // 이미지 높이
+                                width={100}
+                                height={100}
                             />
                             <Text
                                 size="4xl"
                                 style={{
                                     fontFamily: `'Black Han Sans', sans-serif`,
                                 }}
-                                className="ml-1" // 텍스트와 이미지 사이의 간격 조정
+                                className="ml-1"
                             >
                                 {/* Store Font */}
                             </Text>
