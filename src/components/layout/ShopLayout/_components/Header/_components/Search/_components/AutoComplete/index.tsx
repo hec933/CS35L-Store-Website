@@ -46,7 +46,14 @@ export default function AutoComplete({ query, handleClose }: Props) {
         <div className="flex flex-col h-full">
             <div className="p-2 overflow-hidden flex-1">
                 {/* Header section for store search */}
-                <div className="border-b border-grey-300 pb-1 mb-2 flex items-center">
+                <div
+                    className="border-b border-grey-300 pb-1 mb-2 flex items-center cursor-pointer"
+                    onClick={() =>
+                        router.push(
+                            `/search/shop?query=${encodeURIComponent(query)}`,
+                        )
+                    }
+                >
                     <span className="material-symbols-outlined shrink-0">
                         storefront
                     </span>

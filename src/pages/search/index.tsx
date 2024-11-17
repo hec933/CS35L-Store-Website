@@ -27,12 +27,14 @@ export const getServerSideProps: GetServerSideProps<{
     const query = decodeURIComponent(originalQuery)
 
     // Fetch products using the search query
-    const { data: products } = await getProductsByKeyword({
-        query,
-        fromPage: 0,
-        toPage: 1,
-    })
-    const { data: count } = await getProductsByKeywordCount(query)
+    const [{ data: products }, { data: count }] = await Promise.all([
+        getProductsByKeyword({
+            query,
+            fromPage: 0,
+            toPage: 1,
+        }),
+        getProductsByKeywordCount(query),
+    ])
 
     // Return the fetched products and query as props
     return { props: { products, query, count } }
@@ -47,6 +49,10 @@ export default function Search({
     const [products, setProducts] = useState<TProduct[]>(initialProducts)
     // The page displayed to the user starts from 1
     const [currentPage, setCurrentPage] = useState(1)
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [initialProducts])
 
     useEffect(() => {
         ;(async () => {

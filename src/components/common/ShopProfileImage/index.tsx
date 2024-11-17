@@ -1,11 +1,11 @@
-import classNames from "classnames";
+import classNames from 'classnames'
 
 interface Props {
     // URL of the shop profile image
-    imageUrl?: string;
+    imageUrl?: string
 
     // Additional className for customization
-    className?: string;
+    className?: string
 }
 
 /**
@@ -19,21 +19,21 @@ export default function ShopProfileImage({ imageUrl, className }: Props) {
             <div
                 className={classNames(
                     className,
-                    "rounded-full bg-slate-200 w-14 h-14 flex justify-center items-center"
+                    'rounded-full w-14 h-14 bg-cover bg-center', // image bg center
                 )}
             >
                 <span className="material-symbols-outlined text-slate-500">
                     storefront
                 </span>
             </div>
-        );
+        )
     }
 
     // When an image is provided
     return (
         <div
-            className={classNames(className, "rounded-full w-14 h-14 bg-cover")}
+            className={classNames(className, 'rounded-full w-14 h-14 bg-cover')}
             style={{ backgroundImage: `url(${imageUrl})` }}
         />
-    );
+    )
 }

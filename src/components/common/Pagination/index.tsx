@@ -11,7 +11,7 @@ type Props = {
 
 // CSS class name for the pagination buttons
 const btnClassName =
-    'border border-slate-300 px-2 py-2 flex justify-center items-center leading-none disabled:opacity-30 hover:bg-slate-200'
+    'border border-uclaBlue px-2 py-2 flex justify-center items-center leading-none disabled:opacity-30 hover:bg-slate-200 rounded-xl'
 
 // Pagination component
 export default function Pagination({
