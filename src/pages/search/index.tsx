@@ -1,4 +1,5 @@
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import Pagination from '@/components/common/Pagination'
@@ -13,7 +14,7 @@ import { Product as TProduct } from '@/types'
 // Fetch products on the server side before rendering the page
 export const getServerSideProps: GetServerSideProps<{
     products: TProduct[] // Array of products to be displayed
-    query: string // The search query string
+    query: string // The search query string  (
     count: number // Pagination
 }> = async (context) => {
     const originalQuery = context.query.query as string | undefined
@@ -84,9 +85,10 @@ export default function Search({
                         // If products are found, display them
                         products.map(
                             ({ id, title, price, createdAt, imageUrls }) => (
-                                <div
+                                <Link
                                     key={id}
                                     className="rounded-lg overflow-hidden border"
+                                    href={`/products/${id}`}
                                 >
                                     <Product
                                         title={title}
@@ -94,7 +96,7 @@ export default function Search({
                                         createdAt={createdAt}
                                         imageUrl={imageUrls[0]}
                                     />
-                                </div>
+                                </Link>
                             ),
                         )
                     )}

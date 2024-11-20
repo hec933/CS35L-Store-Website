@@ -1,4 +1,5 @@
 import { throttle } from 'lodash'
+import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -46,34 +47,29 @@ export default function AutoComplete({ query, handleClose }: Props) {
         <div className="flex flex-col h-full">
             <div className="p-2 overflow-hidden flex-1">
                 {/* Header section for store search */}
-                <div
-                    className="border-b border-grey-300 pb-1 mb-2 flex items-center cursor-pointer"
-                    onClick={() =>
-                        router.push(
-                            `/search/shop?query=${encodeURIComponent(query)}`,
-                        )
-                    }
+                <Link
+                    href={`/search/shop?query=${encodeURIComponent(query)}`}
+                    prefetch={false}
+                    className="border-b border-grey-300 pb-1 mb-2 flex items-center"
+                    onClick={() => handleClose()}
                 >
                     <span className="material-symbols-outlined shrink-0">
                         storefront
                     </span>
-
                     <Text size="sm" className="ml-1 shrink-0">
-                        Store Search {'>'}
+                        Seller Search {'>'}
                     </Text>
-
                     <Text
                         size="sm"
-                        color="darkestBlue"
+                        color="darkestGold"
                         className="mx-1 truncate"
                     >
-                        {query} {/* Display the search query */}
+                        {query}
                     </Text>
-
                     <Text size="sm" color="lighterBlue" className="shrink-0">
-                        Search by store
+                        Search by seller
                     </Text>
-                </div>
+                </Link>
 
                 {keywords.length === 0 ? (
                     // If there are no autocomplete keywords, show a message
@@ -86,19 +82,22 @@ export default function AutoComplete({ query, handleClose }: Props) {
                     // If there are autocomplete keywords, display them in a scrollable container
                     <div className="h-full overflow-scroll pb-8">
                         {keywords.map((keyword) => (
-                            <Text
-                                size="sm"
+                            <Link
                                 key={keyword}
-                                className="block my-1 truncate cursor-pointer"
+                                href={`/search?query=${encodeURIComponent(keyword)}`}
+                                prefetch={false}
                                 onClick={() => {
                                     addRecentKeyword(keyword)
-                                    router.push(
-                                        `/search?query=${encodeURIComponent(keyword)}`,
-                                    )
+                                    handleClose()
                                 }}
                             >
-                                {keyword}
-                            </Text>
+                                <Text
+                                    size="sm"
+                                    className="block my-1 truncate cursor-pointer"
+                                >
+                                    {keyword}
+                                </Text>
+                            </Link>
                         ))}
                     </div>
                 )}
