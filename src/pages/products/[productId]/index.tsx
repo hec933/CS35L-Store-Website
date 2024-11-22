@@ -343,14 +343,14 @@ export default function ProductDetail({
                                                 imageUrls,
                                             }) => (
                                                   <Link href={`/products/${id}`} passHref>
-						    <div className="w-48">
+						    <a className="w-48">
 						        <Product
 							      title={title}
 							      price={price}
 							      createdAt={createdAt}
 							      imageUrl={imageUrls[0]}
 							 />
-						    </div>
+						    </a>
 						  </Link>
                                             ),
                                         )}
