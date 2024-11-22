@@ -22,3 +22,12 @@ export type Shop = {
     introduce: string | null
     createdAt: string
 }
+
+// product review type
+export type Review = {
+    id: string
+    productId: string
+    contents: string
+    createdBy: string
+    createdAt: string
+}
