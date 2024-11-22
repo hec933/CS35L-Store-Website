@@ -27,6 +27,7 @@ import { getShopProducts } from '@/repository/shops/getShopProducts'
 import { getShopReviewCount } from '@/repository/shops/getShopReviewCount'
 import { getShopReviews } from '@/repository/shops/getShopReviews'
 import { Review, Product as TProduct, Shop as TShop } from '@/types'
+#import { useRouter } from 'next/router'
 
 /**
  * Fetch product details, user information, and like status from the server
@@ -64,6 +65,7 @@ export const getServerSideProps: GetServerSideProps<{
         { data: reviews },
         { data: reviewCount },
     ] = await Promise.all([
+
         myShopId !== null
             ? await getIsLikedWithProductIdAndShopId({
                   productId,
@@ -341,18 +343,16 @@ export default function ProductDetail({
                                                 createdAt,
                                                 imageUrls,
                                             }) => (
-                                                <Link
-                                                    key={id}
-                                                    href={`/products/${id}`}
-                                                    className="w-48"
-                                                >
-                                                    <Product
-                                                        title={title}
-                                                        price={price}
-                                                        createdAt={createdAt}
-                                                        imageUrl={imageUrls[0]}
-                                                    />
-                                                </Link>
+                                                  <Link href={`/products/${id}`} passHref>
+						    <div className="w-48">
+						        <Product
+							      title={title}
+							      price={price}
+							      createdAt={createdAt}
+							      imageUrl={imageUrls[0]}
+							 />
+						    </div>
+						  </Link>
                                             ),
                                         )}
                                 </div>
