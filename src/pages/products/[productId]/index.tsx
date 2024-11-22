@@ -27,7 +27,6 @@ import { getShopProducts } from '@/repository/shops/getShopProducts'
 import { getShopReviewCount } from '@/repository/shops/getShopReviewCount'
 import { getShopReviews } from '@/repository/shops/getShopReviews'
 import { Review, Product as TProduct, Shop as TShop } from '@/types'
-import { useRouter } from 'next/router'
 
 /**
  * Fetch product details, user information, and like status from the server
