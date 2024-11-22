@@ -15,6 +15,8 @@ import { getMe } from '@/repository/me/getMe'
 import { getProduct } from '@/repository/products/getProduct'
 import { getProductsByTag } from '@/repository/products/getProductsByTag'
 import { Product as TProduct } from '@/types'
+import { useRouter } from 'next/router'
+
 
 /**
  * Fetch product details, user information, and like status from the server
@@ -33,6 +35,7 @@ export const getServerSideProps: GetServerSideProps<{
     const {
         data: { shopId: myShopId },
     } = await getMe()
+
 
     // Check if the product is liked by the user's shop (사용자의 상점이 제품을 찜했는지 확인)
     const { data: isLiked } =
@@ -280,18 +283,16 @@ export default function ProductDetail({
                                                 createdAt,
                                                 imageUrls,
                                             }) => (
-                                                <Link
-                                                    key={id}
-                                                    href={`/products/${id}`}
-                                                    className="w-48"
-                                                >
-                                                    <Product
-                                                        title={title}
-                                                        price={price}
-                                                        createdAt={createdAt}
-                                                        imageUrl={imageUrls[0]}
-                                                    />
-                                                </Link>
+                                                  <Link href={`/products/${id}`} passHref>
+						    <div className="w-48">
+						        <Product
+							      title={title}
+							      price={price}
+							      createdAt={createdAt}
+							      imageUrl={imageUrls[0]}
+							 />
+						    </div>
+						  </Link>
                                             ),
                                         )}
                                 </div>
