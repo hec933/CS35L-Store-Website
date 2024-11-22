@@ -31,82 +31,36 @@ import { Review, Product as TProduct, Shop as TShop } from '@/types'
 /**
  * Fetch product details, user information, and like status from the server
  */
-export const getServerSideProps: GetServerSideProps<{
-    product: TProduct // Product data to be passed to the component
-    shop: TShop
-    productCount: number
-    followerCount: number
-    myShopId: string | null // User's shop ID or null if not logged in
-    isLiked: boolean // Whether the product is liked by the user
-    isFollowed: boolean
-    suggest: TProduct[]
-    shopProducts: TProduct[]
-    reviews: Review[]
-    reviewCount: number
-}> = async (context) => {
-    const productId = context.query.productId as string
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    const productId = context.query.productId as string;
 
-    // Fetch product data from the repository
-    const { data: product } = await getProduct(productId)
-    const {
-        data: { shopId: myShopId },
-    } = await getMe()
+    // Only fetch the absolute essentials first
+    const [{ data: product }, { data: { shopId: myShopId } }] = await Promise.all([
+        getProduct(productId),
+        getMe()
+    ]);
 
-    // Check if the product is liked by the user's shop
-    const [
-        { data: isLiked },
-        productsByTagsResult,
-        { data: shop },
-        { data: productCount },
-        { data: followerCount },
-        { data: isFollowed },
-        { data: shopProducts },
-        { data: reviews },
-        { data: reviewCount },
-    ] = await Promise.all([
-        myShopId !== null
-            ? await getIsLikedWithProductIdAndShopId({
-                  productId,
-                  shopId: myShopId,
-              })
-            : { data: false },
-        Promise.all((product.tags || []).map((tag) => getProductsByTag(tag))),
-        getShop(product.createdBy),
-        getShopProductCount(product.createdBy),
-        getShopFollowerCount(product.createdBy),
-        myShopId !== null
-            ? getIsFollowedByShopId({
-                  followerId: myShopId,
-                  followedId: product.createdBy,
-              })
-            : { data: false },
-        getShopProducts({ shopId: product.createdBy, fromPage: 0, toPage: 1 }),
-        getShopReviews({ shopId: product.createdBy, fromPage: 0, toPage: 1 }),
-        getShopReviewCount(product.createdBy),
-    ])
+    const { data: shop } = await getShop(product.createdBy);
 
-    /**
-     * Extract the data from each result and flatten the array to get a list of suggested products
-     */
-    const suggest = productsByTagsResult.map(({ data }) => data).flat()
-
-    // Return the fetched data as props
+    // Simplify the return object
     return {
         props: {
             product,
             shop,
-            productCount,
-            followerCount,
             myShopId,
-            isLiked,
-            suggest,
-            isFollowed,
-            shopProducts,
-            reviews,
-            reviewCount,
+            // Set default values for non-critical data
+            productCount: 0,
+            followerCount: 0,
+            isLiked: false,
+            suggest: [],
+            isFollowed: false,
+            shopProducts: [],
+            reviews: [],
+            reviewCount: 0,
         },
-    }
-}
+    };
+};
+
 
 // Extend dayjs with the relativeTime plugin and set locale to us
 dayjs.extend(relativeTime).locale('en')
@@ -142,7 +96,7 @@ export default function ProductDetail({
 
     // Handle like action
     const handleToggleLike = checkAuth(() => {
-        setIsLiked((prev) => !prev)
+        setIsLiked((prev: boolean) => !prev)
         // TODO : Send request to the server
     })
 
@@ -157,7 +111,7 @@ export default function ProductDetail({
     })
 
     const handleToggleFollow = checkAuth(() => {
-        setIsFollowed((prev) => !prev)
+        setIsFollowed((prev: boolean) => !prev)
         // TODO : Send request to the server
     })
 
@@ -305,7 +259,7 @@ export default function ProductDetail({
                                             No product tags available.{' '}
                                         </Text>
                                     ) : (
-                                        product.tags.map((tag) => (
+                                        product.tags.map((tag: string) => (
                                             <div
                                                 key={tag}
                                                 className="bg-lightestBlue rounded-xl px-2 text-sm"
@@ -340,20 +294,16 @@ export default function ProductDetail({
                                                 price,
                                                 createdAt,
                                                 imageUrls,
-                                            }) => (
-                                                <Link
-                                                    key={id}
-                                                    href={`/products/${id}`}
-                                                    className="w-48"
-                                                >
-                                                    <Product
-                                                        title={title}
-                                                        price={price}
-                                                        createdAt={createdAt}
-                                                        imageUrl={imageUrls[0]}
-                                                    />
-                                                </Link>
-                                            ),
+                                            }: TProduct) => (
+                                                 <Link href={`/products/${id}`} className="w-48">
+						   <Product
+						       title={title}
+						       price={price}
+						       createdAt={createdAt}
+						       imageUrl={imageUrls[0]}
+						 />
+						</Link>
+						),
                                         )}
                                 </div>
                             </div>
@@ -410,7 +360,11 @@ export default function ProductDetail({
                         <div className="grid grid-cols-2 gap-2 mt-5">
                             {shopProducts
                                 .slice(0, 2)
-                                .map(({ id, imageUrls, price }) => (
+                                .map(({ id, imageUrls, price }: {
+				id: string;
+				imageUrls: string[];
+				price: number;}
+				) => (
                                     <Link
                                         key={id}
                                         href={`/products/${id}`}
@@ -472,7 +426,12 @@ export default function ProductDetail({
                                             contents,
                                             createdBy,
                                             createdAt,
-                                        }) => (
+                                        }:{
+					    id: string;
+					    contents: string;
+					    createdBy: string;
+					    createdAt: string;
+					}) => (
                                             <ReviewItem
                                                 key={id}
                                                 contents={contents}
