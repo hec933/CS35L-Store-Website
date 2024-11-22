@@ -1,12 +1,10 @@
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
+import { GetServerSideProps } from 'next'
 import 'dayjs/locale/en'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
 import ProductImage from './_components/ProductImage'
 import ReviewItem from './_components/ReviewItem'
 import Button from '@/components/common/Button'
@@ -15,108 +13,52 @@ import Shop from '@/components/common/Shop'
 import Text from '@/components/common/Text'
 import Container from '@/components/layout/Container'
 import Wrapper from '@/components/layout/Wrapper'
-import { getIsFollowedByShopId } from '@/repository/followers/getIsFollowedByShopId'
-import { getIsLikedWithProductIdAndShopId } from '@/repository/likes/getIsLikedWithProductIdAndShopId'
-import { getMe } from '@/repository/me/getMe'
 import { getProduct } from '@/repository/products/getProduct'
-import { getProductsByTag } from '@/repository/products/getProductsByTag'
 import { getShop } from '@/repository/shops/getShop'
-import { getShopFollowerCount } from '@/repository/shops/getShopFollowerCount'
-import { getShopProductCount } from '@/repository/shops/getShopProductCount'
-import { getShopProducts } from '@/repository/shops/getShopProducts'
-import { getShopReviewCount } from '@/repository/shops/getShopReviewCount'
-import { getShopReviews } from '@/repository/shops/getShopReviews'
-import { Review, Product as TProduct, Shop as TShop } from '@/types'
+import { Product as TProduct, Shop as TShop } from '@/types'
 
-/**
- * Fetch product details, user information, and like status from the server
- */
 export const getServerSideProps: GetServerSideProps = async (context) => {
     const productId = context.query.productId as string;
-
-    // Only fetch the absolute essentials first
-    const [{ data: product }, { data: { shopId: myShopId } }] = await Promise.all([
-        getProduct(productId),
-        getMe()
-    ]);
-
+    const { data: product } = await getProduct(productId);
     const { data: shop } = await getShop(product.createdBy);
 
-    // Simplify the return object
     return {
         props: {
             product,
             shop,
-            myShopId,
-            // Set default values for non-critical data
-            productCount: 0,
-            followerCount: 0,
-            isLiked: false,
-            suggest: [],
-            isFollowed: false,
-            shopProducts: [],
-            reviews: [],
-            reviewCount: 0,
         },
     };
 };
 
-
-// Extend dayjs with the relativeTime plugin and set locale to us
 dayjs.extend(relativeTime).locale('en')
 
-// Main component for the Product Detail page
-export default function ProductDetail({
+export default function ProductDetail({ 
     product,
-    shop,
-    productCount,
-    followerCount,
-    myShopId,
-    suggest,
-    shopProducts,
-    reviews,
-    reviewCount,
-    isLiked: initialIsLiked,
-    isFollowed: initialIsFollowed,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) {
-    const [isLiked, setIsLiked] = useState(initialIsLiked)
-    const [isFollowed, setIsFollowed] = useState(initialIsFollowed)
-
+    shop
+}: {
+    product: TProduct;
+    shop: TShop;
+}) {
     const router = useRouter()
-    const { productId } = router.query
 
-    // Function to check if the user is authenticated before performing an action
-    const checkAuth = (func: Function) => () => {
-        if (!myShopId) {
-            alert('You need to login.')
-            return
-        }
-        func()
+    const handleToggleLike = () => {
+        alert('Need to implement')
     }
 
-    // Handle like action
-    const handleToggleLike = checkAuth(() => {
-        setIsLiked((prev: boolean) => !prev)
-        // TODO : Send request to the server
-    })
-
-    // Handle chat action
-    const handleChat = checkAuth(() => {
+    const handleChat = () => {
         alert('Start Chat')
-    })
+    }
 
-    // Handle purchase action
-    const handlePruchase = checkAuth(() => {
+    const handlePruchase = () => {
         alert('Purchase Now')
-    })
+    }
 
-    const handleToggleFollow = checkAuth(() => {
-        setIsFollowed((prev: boolean) => !prev)
-        // TODO : Send request to the server
-    })
+    const handleToggleFollow = () => {
+        alert('Need to implement')
+    }
 
     return (
-        <Wrapper>
+        <Wrapper key={typeof router.query.productId === 'string' ? router.query.productId : undefined}>
             <Container>
                 <div className="flex gap-6 my-6">
                     {/* Product image section */}
@@ -159,14 +101,14 @@ export default function ProductDetail({
                             </div>
                         </div>
 
-                        {/* Action buttons  (getIsLikedWithProductIdAndShopId) */}
+                        {/* Action buttons */}
                         <div className="flex gap-2">
                             {/* Add to Cart */}
                             <Button
                                 fullWidth
                                 color="uclaBlue"
                                 className="flex justify-center items-center gap-1 rounded-full"
-                                onClick={() => handleToggleLike()}
+                                onClick={handleToggleLike}
                             >
                                 <span
                                     style={{ fontSize: '1.25rem' }}
@@ -174,9 +116,7 @@ export default function ProductDetail({
                                 >
                                     shopping_cart
                                 </span>
-                                <Text color="white">
-                                    {isLiked ? 'Delete' : 'Add to Cart'}
-                                </Text>{' '}
+                                <Text color="white">Add to Cart</Text>
                             </Button>
 
                             {/* Chat */}
@@ -184,7 +124,7 @@ export default function ProductDetail({
                                 fullWidth
                                 color="darkestGold"
                                 className="flex justify-center items-center gap-1 rounded-full"
-                                onClick={() => handleChat()}
+                                onClick={handleChat}
                             >
                                 <span
                                     style={{ fontSize: '1rem' }}
@@ -192,7 +132,7 @@ export default function ProductDetail({
                                 >
                                     chat_bubble
                                 </span>
-                                <Text color="white"> Chat </Text>{' '}
+                                <Text color="white">Chat</Text>
                             </Button>
 
                             {/* Buy Now */}
@@ -201,40 +141,34 @@ export default function ProductDetail({
                                 disabled={!!product.purchaseBy}
                                 color="uclaBlue"
                                 className="flex justify-center items-center gap-1 rounded-full"
-                                onClick={() => handlePruchase()}
+                                onClick={handlePruchase}
                             >
                                 <Text color="white">
-                                    {!!product.purchaseBy
-                                        ? 'Sold Out'
-                                        : 'Buy Now'}{' '}
+                                    {!!product.purchaseBy ? 'Sold Out' : 'Buy Now'}
                                 </Text>
                             </Button>
                         </div>
                     </div>
                 </div>
 
-                {/* Product description and details  */}
+                {/* Product description and details */}
                 <div className="flex border-t border-lighterBlue pt-5">
                     <div className="w-4/6 pr-2">
                         {/* Product Information */}
                         <div className="border-b border-lighterBlue pb-3">
-                            <Text size="xl">Product Information</Text>{' '}
+                            <Text size="xl">Product Information</Text>
                         </div>
                         {/* Description */}
                         <div className="mt-5 mb-10">{product.description}</div>
-                        <div className="border-y border-lighterBlue justify-center py-4 flex gap-2 ">
+                        <div className="border-y border-lighterBlue justify-center py-4 flex gap-2">
                             {/* Used or New Product */}
-                            <div className="rounded-full bg-lightestBlue px-3 py-1 text-sm ">
-                                {product.isUsed
-                                    ? 'Used Product'
-                                    : 'New Product'}{' '}
+                            <div className="rounded-full bg-lightestBlue px-3 py-1 text-sm">
+                                {product.isUsed ? 'Used Product' : 'New Product'}
                             </div>
 
                             {/* Exchangeable */}
                             <div className="rounded-full bg-lightestBlue px-3 py-1 text-sm">
-                                {product.isChangable
-                                    ? 'Exchangeable'
-                                    : 'Not Exchangeable'}{' '}
+                                {product.isChangable ? 'Exchangeable' : 'Not Exchangeable'}
                             </div>
                         </div>
                         {/* Location and Tag */}
@@ -243,10 +177,7 @@ export default function ProductDetail({
                                 <Text size="lg" color="darkerBlue">
                                     Location
                                 </Text>
-                                <Text color="uclaBlue">
-                                    {' '}
-                                    {product.address}{' '}
-                                </Text>{' '}
+                                <Text color="uclaBlue">{product.address}</Text>
                             </div>
                             <div className="flex-1 flex flex-col items-center gap-2">
                                 <Text size="lg" color="darkerBlue">
@@ -254,10 +185,7 @@ export default function ProductDetail({
                                 </Text>
                                 <div className="flex gap-2 flex-wrap justify-center">
                                     {product.tags === null ? (
-                                        <Text color="uclaBlue">
-                                            {' '}
-                                            No product tags available.{' '}
-                                        </Text>
+                                        <Text color="uclaBlue">No product tags available.</Text>
                                     ) : (
                                         product.tags.map((tag: string) => (
                                             <div
@@ -271,69 +199,24 @@ export default function ProductDetail({
                                 </div>
                             </div>
                         </div>
-
-                        {/* Similar Tag Products */}
-                        {suggest.length === 0 ? null : (
-                            <div>
-                                {/* Title */}
-                                <div>
-                                    <Text size="xl">
-                                        {' '}
-                                        Products related to this item
-                                    </Text>
-                                </div>
-
-                                {/* related products List */}
-                                <div className="my-5 flex gap-3 flex-wrap">
-                                    {suggest
-                                        .slice(0, 3)
-                                        .map(
-                                            ({
-                                                id,
-                                                title,
-                                                price,
-                                                createdAt,
-                                                imageUrls,
-                                            }: TProduct) => (
-                                                 <Link href={`/products/${id}`} className="w-48">
-						   <Product
-						       title={title}
-						       price={price}
-						       createdAt={createdAt}
-						       imageUrl={imageUrls[0]}
-						 />
-						</Link>
-						),
-                                        )}
-                                </div>
-                            </div>
-                        )}
                     </div>
 
-                    {/* Buttom-Right Seller Review Information */}
+                    {/* Bottom-Right Seller Information */}
                     <div className="w-2/6 border-l border-lighterBlue pl-2">
                         <div className="border-b border-lighterBlue pb-3 text-center">
-                            <Text size="xl"> Seller Information </Text>
+                            <Text size="xl">Seller Information</Text>
                         </div>
                         <div className="p-10">
                             <Shop
                                 name={shop.name}
                                 profileImageUrl={shop.imageUrl || undefined}
-                                productCount={productCount}
-                                followerCount={followerCount}
+                                productCount={0}
+                                followerCount={0}
                                 type="row"
-                                handleClickTitle={() =>
-                                    alert('handleClickTitle')
-                                }
-                                handleClickProfileImage={() =>
-                                    alert('handleClickProfileImage')
-                                }
-                                handleClickProductCount={() =>
-                                    alert('handleClickProductCount')
-                                }
-                                handleClickFollowerCount={() =>
-                                    alert('handleClickFollowerCount')
-                                }
+                                handleClickTitle={() => alert('handleClickTitle')}
+                                handleClickProfileImage={() => alert('handleClickProfileImage')}
+                                handleClickProductCount={() => alert('handleClickProductCount')}
+                                handleClickFollowerCount={() => alert('handleClickFollowerCount')}
                             />
                         </div>
                         {/* Follow Button */}
@@ -347,143 +230,38 @@ export default function ProductDetail({
                                 color="white"
                                 className="flex justify-center items-center gap-4"
                             >
-                                <span className="material-symbols-outlined">
-                                    {isFollowed
-                                        ? 'person_remove'
-                                        : 'person_add'}
-                                </span>
-                                {isFollowed ? 'Unfollow' : 'Follow'}
+                                <span className="material-symbols-outlined">person_add</span>
+                                Follow
                             </Text>
                         </Button>
 
-                        {/* Seller items */}
-                        <div className="grid grid-cols-2 gap-2 mt-5">
-                            {shopProducts
-                                .slice(0, 2)
-                                .map(({ id, imageUrls, price }: {
-				id: string;
-				imageUrls: string[];
-				price: number;}
-				) => (
-                                    <Link
-                                        key={id}
-                                        href={`/products/${id}`}
-                                        className="relative aspect-square"
-                                    >
-                                        <Image
-                                            src={imageUrls[0]}
-                                            alt=""
-                                            fill
-                                            style={{ objectFit: 'cover' }}
-                                            className="w-full h-full"
-                                        />
-                                        <div className="absolute bottom-0 w-full bg-lighterBlue text-center py-1">
-                                            <Text color="black" size="md">
-                                                {new Intl.NumberFormat(
-                                                    'en-US',
-                                                    {
-                                                        style: 'currency',
-                                                        currency: 'USD',
-                                                        minimumFractionDigits: 2,
-                                                    },
-                                                ).format(price)}
-                                            </Text>
-                                        </div>
-                                    </Link>
-                                ))}
-                        </div>
-
-                        {/* Product Review */}
-                        {shopProducts.length > 2 && (
-                            <Link
-                                href="/" // TODO
-                                className="block border-b border-lighterBlue text-center py-3"
+                        {/* Button */}
+                        <div className="flex gap-1 my-7">
+                            <Button
+                                fullWidth
+                                color="orange"
+                                className="flex justify-center items-center gap-1 rounded-full"
+                                onClick={handleChat}
                             >
-                                <Text size="md" color="uclaBlue">
-                                    {shopProducts.length - 2} items
-                                </Text>{' '}
-                                <Text size="sm" color="black">
-                                    See more products {'>>'}
+                                <span
+                                    style={{ fontSize: '1rem' }}
+                                    className="material-symbols-outlined"
+                                >
+                                    chat_bubble
+                                </span>
+                                <Text color="white">Chat</Text>
+                            </Button>
+                            <Button
+                                fullWidth
+                                color="red"
+                                className="flex justify-center items-center gap-1 rounded-full"
+                                disabled={!!product.purchaseBy}
+                                onClick={handlePruchase}
+                            >
+                                <Text color="white">
+                                    {!!product.purchaseBy ? 'Sold Out' : 'Buy Now'}
                                 </Text>
-                            </Link>
-                        )}
-                        <div>
-                            {/* Reviews title */}
-                            <div className="my-4 border-b border-lighterBlue pb-4 text-center">
-                                <Text color="red" size="lg">
-                                    {reviewCount}
-                                </Text>{' '}
-                                <Text size="md">Reviews</Text>
-                            </div>
-
-                            {/* Reviews */}
-                            <div>
-                                {reviews
-                                    .slice(0, 2)
-                                    .map(
-                                        ({
-                                            id,
-                                            contents,
-                                            createdBy,
-                                            createdAt,
-                                        }:{
-					    id: string;
-					    contents: string;
-					    createdBy: string;
-					    createdAt: string;
-					}) => (
-                                            <ReviewItem
-                                                key={id}
-                                                contents={contents}
-                                                createdBy={createdBy}
-                                                createdAt={createdAt}
-                                            />
-                                        ),
-                                    )}
-                            </div>
-
-                            {/* See more reviews */}
-                            <div>
-                                <Link
-                                    href="" // TODO
-                                    className="block border-y border-lighterBlue text-center py-2"
-                                >
-                                    <Text color="uclaBlue" size="sm">
-                                        See more reviews {'>'}
-                                    </Text>
-                                </Link>
-                            </div>
-
-                            {/* Button */}
-                            <div className="flex gap-1 my-7">
-                                <Button
-                                    fullWidth
-                                    color="orange"
-                                    className="flex justify-center items-center gap-1 rounded-full"
-                                    onClick={() => handleChat()}
-                                >
-                                    <span
-                                        style={{ fontSize: '1rem' }}
-                                        className="material-symbols-outlined"
-                                    >
-                                        chat_bubble
-                                    </span>
-                                    <Text color="white">Chat</Text>
-                                </Button>
-                                <Button
-                                    fullWidth
-                                    color="red"
-                                    className="flex justify-center items-center gap-1 rounded-full"
-                                    disabled={!!product.purchaseBy}
-                                    onClick={() => handlePruchase()}
-                                >
-                                    <Text color="white">
-                                        {!!product.purchaseBy
-                                            ? 'Sold Out'
-                                            : 'Buy Now'}
-                                    </Text>
-                                </Button>
-                            </div>
+                            </Button>
                         </div>
                     </div>
                 </div>

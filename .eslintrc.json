@@ -6,6 +6,7 @@
     ],
     "rules": {
         "import/order": "off",
-        "indent": "off"
+        "indent": "off",
+	"@typescript-eslint/no-explicit-any": "off"
     }
 }
