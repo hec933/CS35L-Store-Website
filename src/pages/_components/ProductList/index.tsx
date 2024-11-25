@@ -14,7 +14,8 @@ type Props = {
 export default function ProductList({ initialProducts }: Props) {
     const [products, setProducts] = useState<TProduct[]>(initialProducts)
     // Maximum number of items to display
-    const MAX_ITEMS = 50
+    const MAX_ITEMS = 20
+
     // react-intersection-observer to detect when elements come into view
     const { ref, inView } = useInView({ threshold: 1 })
     const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -56,7 +57,7 @@ export default function ProductList({ initialProducts }: Props) {
     useEffect(() => {
         // Fetch more products when the user scrolls to the bottom of the page
         if (inView && !isLastPage && !isLoading) {
-            (async () => {
+            ;(async () => {
                 await handleGetProducts({
                     fromPage: Math.floor(products.length / 10),
                     toPage: Math.floor(products.length / 10) + 1,
@@ -70,20 +71,22 @@ export default function ProductList({ initialProducts }: Props) {
         <div className="my-8 ">
             {products ? (
                 <div className="grid grid-cols-5 gap-4 ">
-                    {products.map(({ id, title, price, imageUrls, createdAt }) => (
-                        <Link
-                            key={id}
-                            className="rounded-lg overflow-hidden border"
-                            href={`/products/${id}`}
-                        >
-                            <Product
-                                title={title}
-                                price={price}
-                                imageUrl={imageUrls[0]}
-                                createdAt={createdAt}
-                            />
-                        </Link>
-                    ))}
+                    {products.map(
+                        ({ id, title, price, imageUrls, createdAt }) => (
+                            <Link
+                                key={id}
+                                className="rounded-lg overflow-hidden border"
+                                href={`/products/${id}`}
+                            >
+                                <Product
+                                    title={title}
+                                    price={price}
+                                    imageUrl={imageUrls[0]}
+                                    createdAt={createdAt}
+                                />
+                            </Link>
+                        ),
+                    )}
                 </div>
             ) : (
                 <div className="text-center">

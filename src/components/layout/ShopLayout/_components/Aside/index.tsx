@@ -1,4 +1,5 @@
 import classNames from 'classnames'
+import Recent from './_components/Recent'
 import styles from './style.module.scss'
 import Text from '@/components/common/Text'
 import Container from '@/components/layout/Container'
@@ -14,7 +15,7 @@ export default function Aside() {
                 )}
             >
                 <div className="border border-uclaBlue bg-white p-2 flex flex-col items-center">
-                    <Text size="xs">Cart</Text>
+                    <Text size="sm">Cart</Text>
                     <Text
                         size="xs"
                         color="lighterBlue"
@@ -31,14 +32,7 @@ export default function Aside() {
                         0
                     </Text>
                 </div>
-                <div className="border border-uclaBlue p-2 bg-white flex flex-col items-center">
-                    <Text size="xs">History</Text>
-                    <div className="mt-2 text-center">
-                        <Text size="xs" color="lighterBlue" className="block">
-                            No Browsing History
-                        </Text>
-                    </div>
-                </div>
+                <Recent />
             </aside>
         </Container>
     )
