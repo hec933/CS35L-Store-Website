@@ -1,12 +1,11 @@
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import 'dayjs/locale/en'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ProductImage from './_components/ProductImage'
 import ReviewItem from './_components/ReviewItem'
 import Button from '@/components/common/Button'
@@ -27,40 +26,87 @@ import { getShopProducts } from '@/repository/shops/getShopProducts'
 import { getShopReviewCount } from '@/repository/shops/getShopReviewCount'
 import { getShopReviews } from '@/repository/shops/getShopReviews'
 import { Review, Product as TProduct, Shop as TShop } from '@/types'
+import { addRecentItemId } from '@/utils/localstorage'
 
 /**
  * Fetch product details, user information, and like status from the server
  */
-export const getServerSideProps: GetServerSideProps = async (context) => {
-    const productId = context.query.productId as string;
+export const getServerSideProps: GetServerSideProps<{
+    product: TProduct // Product data to be passed to the component
+    shop: TShop
+    productCount: number
+    followerCount: number
+    myShopId: string | null // User's shop ID or null if not logged in
+    isLiked: boolean // Whether the product is liked by the user
+    isFollowed: boolean
+    suggest: TProduct[]
+    shopProducts: TProduct[]
+    reviews: Review[]
+    reviewCount: number
+}> = async (context) => {
+    const productId = context.query.productId as string
 
-    // Only fetch the absolute essentials first
-    const [{ data: product }, { data: { shopId: myShopId } }] = await Promise.all([
-        getProduct(productId),
-        getMe()
-    ]);
+    // Fetch product data from the repository
+    const { data: product } = await getProduct(productId)
+    const {
+        data: { shopId: myShopId },
+    } = await getMe()
 
-    const { data: shop } = await getShop(product.createdBy);
+    // Check if the product is liked by the user's shop
+    const [
+        { data: isLiked },
+        productsByTagsResult,
+        { data: shop },
+        { data: productCount },
+        { data: followerCount },
+        { data: isFollowed },
+        { data: shopProducts },
+        { data: reviews },
+        { data: reviewCount },
+    ] = await Promise.all([
+        myShopId !== null
+            ? await getIsLikedWithProductIdAndShopId({
+                  productId,
+                  shopId: myShopId,
+              })
+            : { data: false },
+        Promise.all((product.tags || []).map((tag) => getProductsByTag(tag))),
+        getShop(product.createdBy),
+        getShopProductCount(product.createdBy),
+        getShopFollowerCount(product.createdBy),
+        myShopId !== null
+            ? getIsFollowedByShopId({
+                  followerId: myShopId,
+                  followedId: product.createdBy,
+              })
+            : { data: false },
+        getShopProducts({ shopId: product.createdBy, fromPage: 0, toPage: 1 }),
+        getShopReviews({ shopId: product.createdBy, fromPage: 0, toPage: 1 }),
+        getShopReviewCount(product.createdBy),
+    ])
 
-    // Simplify the return object
+    /**
+     * Extract the data from each result and flatten the array to get a list of suggested products
+     */
+    const suggest = productsByTagsResult.map(({ data }) => data).flat()
+
+    // Return the fetched data as props
     return {
         props: {
             product,
             shop,
+            productCount,
+            followerCount,
             myShopId,
-            // Set default values for non-critical data
-            productCount: 0,
-            followerCount: 0,
-            isLiked: false,
-            suggest: [],
-            isFollowed: false,
-            shopProducts: [],
-            reviews: [],
-            reviewCount: 0,
+            isLiked,
+            suggest,
+            isFollowed,
+            shopProducts,
+            reviews,
+            reviewCount,
         },
-    };
-};
-
+    }
+}
 
 // Extend dayjs with the relativeTime plugin and set locale to us
 dayjs.extend(relativeTime).locale('en')
@@ -94,15 +140,10 @@ export default function ProductDetail({
         func()
     }
 
-    // Handle like action
+    // Handle like action (찜하기 동작 처리)
     const handleToggleLike = checkAuth(() => {
-        setIsLiked((prev: boolean) => !prev)
+        setIsLiked((prev) => !prev)
         // TODO : Send request to the server
-    })
-
-    // Handle chat action
-    const handleChat = checkAuth(() => {
-        alert('Start Chat')
     })
 
     // Handle purchase action
@@ -111,9 +152,14 @@ export default function ProductDetail({
     })
 
     const handleToggleFollow = checkAuth(() => {
-        setIsFollowed((prev: boolean) => !prev)
+        setIsFollowed((prev) => !prev)
         // TODO : Send request to the server
     })
+
+    // Recent View history
+    useEffect(() => {
+        addRecentItemId(product.id)
+    }, [product.id])
 
     return (
         <Wrapper>
@@ -134,6 +180,7 @@ export default function ProductDetail({
                                     {product.title}
                                 </Text>
                             </div>
+
                             {/* Product price */}
                             <div className="my-6">
                                 <Text size="2xl"> $ </Text>
@@ -141,6 +188,7 @@ export default function ProductDetail({
                                     {product.price.toLocaleString()}
                                 </Text>
                             </div>
+
                             {/* Product creation date */}
                             <div className="border-t border-lightestBlue py-4 flex gap-1 items-center">
                                 <Text color="uclaBlue" className="flex">
@@ -160,94 +208,59 @@ export default function ProductDetail({
                         </div>
 
                         {/* Action buttons  (getIsLikedWithProductIdAndShopId) */}
-                        <div className="flex gap-2">
-                            {/* Add to Cart */}
-                            <Button
-                                fullWidth
-                                color="uclaBlue"
-                                className="flex justify-center items-center gap-1 rounded-full"
-                                onClick={() => handleToggleLike()}
-                            >
-                                <span
-                                    style={{ fontSize: '1.25rem' }}
-                                    className="material-symbols-outlined"
+                        <div className="flex justify-center items-center w-full">
+                            <div className="flex gap-2 w-[450px]">
+                                {/* Add to Cart */}
+                                <Button
+                                    fullWidth
+                                    color="uclaBlue"
+                                    className="flex justify-center items-center gap-1 rounded-full"
+                                    onClick={() => handleToggleLike()}
                                 >
-                                    shopping_cart
-                                </span>
-                                <Text color="white">
-                                    {isLiked ? 'Delete' : 'Add to Cart'}
-                                </Text>{' '}
-                            </Button>
+                                    <span
+                                        style={{ fontSize: '1.25rem' }}
+                                        className="material-symbols-outlined"
+                                    >
+                                        shopping_cart
+                                    </span>
+                                    <Text color="white">
+                                        {isLiked ? 'Delete' : 'Add to Cart'}
+                                    </Text>
+                                </Button>
 
-                            {/* Chat */}
-                            <Button
-                                fullWidth
-                                color="darkestGold"
-                                className="flex justify-center items-center gap-1 rounded-full"
-                                onClick={() => handleChat()}
-                            >
-                                <span
-                                    style={{ fontSize: '1rem' }}
-                                    className="material-symbols-outlined"
+                                {/* Buy Now */}
+                                <Button
+                                    fullWidth
+                                    disabled={!!product.purchaseBy}
+                                    color="uclaBlue"
+                                    className="flex justify-center items-center gap-1 rounded-full"
+                                    onClick={() => handlePruchase()}
                                 >
-                                    chat_bubble
-                                </span>
-                                <Text color="white"> Chat </Text>{' '}
-                            </Button>
-
-                            {/* Buy Now */}
-                            <Button
-                                fullWidth
-                                disabled={!!product.purchaseBy}
-                                color="uclaBlue"
-                                className="flex justify-center items-center gap-1 rounded-full"
-                                onClick={() => handlePruchase()}
-                            >
-                                <Text color="white">
-                                    {!!product.purchaseBy
-                                        ? 'Sold Out'
-                                        : 'Buy Now'}{' '}
-                                </Text>
-                            </Button>
+                                    <Text color="white">
+                                        {!!product.purchaseBy
+                                            ? 'Sold Out'
+                                            : 'Buy Now'}
+                                    </Text>
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Product description and details  */}
+                {/* Product description and details */}
                 <div className="flex border-t border-lighterBlue pt-5">
                     <div className="w-4/6 pr-2">
                         {/* Product Information */}
                         <div className="border-b border-lighterBlue pb-3">
                             <Text size="xl">Product Information</Text>{' '}
                         </div>
+
                         {/* Description */}
                         <div className="mt-5 mb-10">{product.description}</div>
-                        <div className="border-y border-lighterBlue justify-center py-4 flex gap-2 ">
-                            {/* Used or New Product */}
-                            <div className="rounded-full bg-lightestBlue px-3 py-1 text-sm ">
-                                {product.isUsed
-                                    ? 'Used Product'
-                                    : 'New Product'}{' '}
-                            </div>
 
-                            {/* Exchangeable */}
-                            <div className="rounded-full bg-lightestBlue px-3 py-1 text-sm">
-                                {product.isChangable
-                                    ? 'Exchangeable'
-                                    : 'Not Exchangeable'}{' '}
-                            </div>
-                        </div>
                         {/* Location and Tag */}
-                        <div className="flex py-4 border-b mb-10 border-lighterBlue">
-                            <div className="flex-1 flex flex-col items-center gap-2">
-                                <Text size="lg" color="darkerBlue">
-                                    Location
-                                </Text>
-                                <Text color="uclaBlue">
-                                    {' '}
-                                    {product.address}{' '}
-                                </Text>{' '}
-                            </div>
+                        <div className="flex py-4 border-t border-b mb-10 border-lighterBlue">
+                            {/* Tags */}
                             <div className="flex-1 flex flex-col items-center gap-2">
                                 <Text size="lg" color="darkerBlue">
                                     Tags
@@ -259,7 +272,7 @@ export default function ProductDetail({
                                             No product tags available.{' '}
                                         </Text>
                                     ) : (
-                                        product.tags.map((tag: string) => (
+                                        product.tags.map((tag) => (
                                             <div
                                                 key={tag}
                                                 className="bg-lightestBlue rounded-xl px-2 text-sm"
@@ -294,16 +307,24 @@ export default function ProductDetail({
                                                 price,
                                                 createdAt,
                                                 imageUrls,
-                                            }: TProduct) => (
-                                                 <Link href={`/products/${id}`} className="w-48">
-						   <Product
-						       title={title}
-						       price={price}
-						       createdAt={createdAt}
-						       imageUrl={imageUrls[0]}
-						 />
-						</Link>
-						),
+                                            }) => (
+                                                <div key={id} className="w-48">
+                                                    <Link
+                                                        href={`/products/${id}`}
+                                                    >
+                                                        <Product
+                                                            title={title}
+                                                            price={price}
+                                                            createdAt={
+                                                                createdAt
+                                                            }
+                                                            imageUrl={
+                                                                imageUrls[0]
+                                                            }
+                                                        />
+                                                    </Link>
+                                                </div>
+                                            ),
                                         )}
                                 </div>
                             </div>
@@ -336,35 +357,12 @@ export default function ProductDetail({
                                 }
                             />
                         </div>
-                        {/* Follow Button */}
-                        <Button
-                            className="rounded-full"
-                            color="uclaBlue"
-                            fullWidth
-                            onClick={handleToggleFollow}
-                        >
-                            <Text
-                                color="white"
-                                className="flex justify-center items-center gap-4"
-                            >
-                                <span className="material-symbols-outlined">
-                                    {isFollowed
-                                        ? 'person_remove'
-                                        : 'person_add'}
-                                </span>
-                                {isFollowed ? 'Unfollow' : 'Follow'}
-                            </Text>
-                        </Button>
 
                         {/* Seller items */}
                         <div className="grid grid-cols-2 gap-2 mt-5">
                             {shopProducts
                                 .slice(0, 2)
-                                .map(({ id, imageUrls, price }: {
-				id: string;
-				imageUrls: string[];
-				price: number;}
-				) => (
+                                .map(({ id, imageUrls, price }) => (
                                     <Link
                                         key={id}
                                         href={`/products/${id}`}
@@ -375,9 +373,9 @@ export default function ProductDetail({
                                             alt=""
                                             fill
                                             style={{ objectFit: 'cover' }}
-                                            className="w-full h-full"
+                                            className="object-cover"
                                         />
-                                        <div className="absolute bottom-0 w-full bg-lighterBlue text-center py-1">
+                                        <div className="absolute bottom-0 w-full bg-lighterBlue opacity-60 text-center py-1">
                                             <Text color="black" size="md">
                                                 {new Intl.NumberFormat(
                                                     'en-US',
@@ -426,12 +424,7 @@ export default function ProductDetail({
                                             contents,
                                             createdBy,
                                             createdAt,
-                                        }:{
-					    id: string;
-					    contents: string;
-					    createdBy: string;
-					    createdAt: string;
-					}) => (
+                                        }) => (
                                             <ReviewItem
                                                 key={id}
                                                 contents={contents}
@@ -456,7 +449,7 @@ export default function ProductDetail({
 
                             {/* Button */}
                             <div className="flex gap-1 my-7">
-                                <Button
+                                {/* <Button
                                     fullWidth
                                     color="orange"
                                     className="flex justify-center items-center gap-1 rounded-full"
@@ -469,7 +462,7 @@ export default function ProductDetail({
                                         chat_bubble
                                     </span>
                                     <Text color="white">Chat</Text>
-                                </Button>
+                                </Button> */}
                                 <Button
                                     fullWidth
                                     color="red"

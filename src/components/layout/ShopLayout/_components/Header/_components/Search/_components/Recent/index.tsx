@@ -1,8 +1,9 @@
 import { useRouter } from 'next/router'
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import Text from '@/components/common/Text'
 import {
+    RECENT_KEYWORDS_KEY,
     addRecentKeyword,
     clearRecentKeyword,
     getRecentKeywords,
@@ -22,11 +23,26 @@ export default function Recent({ handleClose }: Props) {
     // Array to store recent search terms
     const [recents, setRecents] = useState<string[]>([])
 
-    useEffect(() => {
-        // Fetch recent search keywords from local storage when the component mounts
+    const handleSetRecents = useCallback(() => {
+        // Fetch recent search keywords
         const recents = getRecentKeywords()
         setRecents(recents)
     }, [])
+
+    // Trigger the handleSetRecents function when the component mounts or when handleSetRecents changes
+    useEffect(() => {
+        handleSetRecents()
+    }, [handleSetRecents])
+    useEffect(() => {
+        // Define an event handler to trigger handleSetRecents when the event RECENT_KEYWORDS_KEY is dispatched
+        const eventHandler = () => handleSetRecents()
+
+        // Add an event listener for RECENT_KEYWORDS_KEY when the component mounts
+        window.addEventListener(RECENT_KEYWORDS_KEY, eventHandler)
+        return () =>
+            // Clean up: Remove the event listener when the component unmounts or when dependencies change
+            window.removeEventListener(RECENT_KEYWORDS_KEY, eventHandler)
+    }, [handleSetRecents])
 
     return (
         <div className="flex flex-col h-full">

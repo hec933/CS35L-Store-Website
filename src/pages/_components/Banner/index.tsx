@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker'
 import { Carousel } from 'react-responsive-carousel'
 import 'react-responsive-carousel/lib/styles/carousel.min.css' // requires a loader
+import Image from 'next/image'
 
 // Banner component that displays a carousel of images
 export default function Banner() {
@@ -15,9 +16,11 @@ export default function Banner() {
             {Array.from({ length: 3 }).map((_, idx) => (
                 // Creates an array of 3 items to generate three slides
                 <div key={idx} className="h-96">
-                    <img
+                    <Image
                         src={faker.image.dataUri()}
                         className="w-full h-full rounded-lg"
+                        fill
+                        alt={''}
                     />
                 </div>
             ))}
