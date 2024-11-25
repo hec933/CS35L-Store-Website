@@ -44,7 +44,23 @@ export default function Login() {
         try {
             const result = await signInWithPopup(auth, googleProvider)
             const user = result.user
-            console.log('Google Sign-In Successful:', user)
+	    const token = await user.getIdToken();
+	    console.log('Google Sign-In Successful:', user)
+
+	    //call local user api
+	    const response = await fetch('/api/user', {
+	    	  method: 'POST',
+		  headers: {
+		  	   'Authorization': `Bearer ${token}`
+	          }
+	    });
+
+
+	    //use the local user data
+	    const data = await response.json();
+	    console.log('Local user data is:', data);
+	    
+
             setShowModal(false) // Close the modal on successful login
             alert(`Welcome, ${user.displayName}!`)
         } catch (error) {
