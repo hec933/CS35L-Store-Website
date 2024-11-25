@@ -13,7 +13,7 @@ interface LoginPanelProps {
     handleLogin: () => void; // Function that takes no arguments and returns void
 }
 
-
+//hello world
 export default function LoginPanel({ handleLogin} : LoginPanelProps) {
     const [type, setType] = useState<undefined | 'login' | 'signup'>()
 
@@ -34,37 +34,15 @@ export default function LoginPanel({ handleLogin} : LoginPanelProps) {
             color="black">
                 Sign up easily and check out the products
             </Text>
-
-            {type === 'login' ? (
-                <Login 
-                    handleSetType={(type) => setType(type)}
-                />
-            ) : type === 'signup' ? (
-                <SignUp 
-                    handleSetType={(type) => setType(type)} 
-                />
-            ) : (
-                <div className="flex flex-col gap-2 w-full">
-                    <Button
-                        className="bg-uclaBlue !text-uclaGold"
-                        onClick={() => setType('login')}
-                    >
-                        Sign in
-                    </Button>
-                    <Button
-                        className="bg-uclaBlue !text-uclaGold"
-                        onClick={() => setType('signup')}
-                    >
-                        Register
-                    </Button>
-                    <Button
-                        className="bg-uclaBlue !text-uclaGold"
-                        onClick={handleLogin}
-                    >
-                        Sign in with Google
-                    </Button>
-                </div>
-            )}
+            <div className="flex flex-col gap-2 w-full">
+                <Button
+                    className="bg-uclaBlue !text-uclaGold"
+                    onClick={handleLogin}
+                >
+                    Sign in with Google
+                </Button>
+            </div>
+        
         </div>
     )
 }

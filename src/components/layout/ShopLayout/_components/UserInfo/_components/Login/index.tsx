@@ -29,6 +29,8 @@ const googleProvider = new GoogleAuthProvider()
 
 export default function Login() {
     const [showModal, setShowModal] = useState(false)
+    const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
+    const [loggedIn, setLoggedIn] = useState(false);
 
     useEffect(() => {
         if (showModal) {
@@ -50,7 +52,6 @@ export default function Login() {
             alert('Login failed. Please check your credentials and try again.')
         }
     }
-
     return (
         <div className="fixed top-2 pb-3 z-50 ">
             <Text
@@ -62,10 +63,35 @@ export default function Login() {
                 Sign in / register
             </Text>
 
-            {showModal && (
+            {showLogoutPrompt && (
+                <div
+                className="fixed top-0 left-0 w-screen h-screen bg-lightestBlue z-50 flex justify-center items-center"
+                onClick= {closeLogoutPrompt} //Close the prompt if clicked outside
+                >
+                    <div
+                    className="bg-white p-6 rounded shadow-md w-64"
+                    
+                    
+                     onClick={(e) => e.stopPropagation()} //Prevent closing when clicking inside the prompt
+                    >
+                     <p>Are you sure you want to log out?</p>
+                     <button
+                     className="mr-4"
+                     onClick={handleLogout}//Log out if "yes"
+                     >
+                        Yes
+                     </button>
+                     <button onClick={closeLogoutPrompt}>No</button>
+                    </div>
+                </div>
+            )}
+
+
+
+            {showModal && !loggedIn &&(
                 <div
                     className="fixed top-0 left-0 w-screen h-screen bg-gray-400/50 z-50 flex justify-center items-center"
-                    onClick={() => setShowModal(false)}
+                    onClick={() => setShowModal(false)} // Close the modal if clicked outside
                 >
                     <LoginPannel handleLogin={handleLogin} />
                 </div>
