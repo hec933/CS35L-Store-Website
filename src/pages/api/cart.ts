@@ -3,7 +3,6 @@ import { Pool } from 'pg';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
-// Initialize Firebase Admin - same as user.ts
 if (!getApps().length) {
   initializeApp({
     credential: cert({
