@@ -8,6 +8,7 @@ import Text from '@/components/common/Text'
 import Container from '@/components/layout/Container'
 import Wrapper from '@/components/layout/Wrapper'
 import Login from '../UserInfo/_components/Login'
+import Likes from '../Aside/_components/Likes'
 
 // Aside bar children
 type Props = { children: ReactNode }
@@ -43,27 +44,8 @@ export default function Header({ children }: Props) {
                         {/* Search Bar */}
                         <Search />
 
-                        {/* Right cart bar */}
-                        <div className="flex gap-5 items-center py-2 px-4">
-                            {/* Cart Icon and Count */}
-                            <div className="flex items-center gap-2">
-                                <span
-                                    className="material-symbols-outlined"
-                                    style={{ fontSize: '1.5rem' }} // 아이콘 크기 확대
-                                >
-                                    shopping_cart
-                                </span>
-                                <Text
-                                    size="lg" // 텍스트 크기 확대
-                                    color="uclaBlue"
-                                    className="flex items-center"
-                                >
-                                    0
-                                </Text>
-                            </div>
-                            {/* Cart Label */}
-                            <Text size="lg">Cart</Text> {/* 텍스트 크기 확대 */}
-                        </div>
+                        {/* Right cart button */}
+                        <Likes />
                     </div>
                 </Container>
             </Wrapper>
