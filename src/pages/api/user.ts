@@ -59,16 +59,18 @@ export default async function handler(
      });
    }
 
+
    // Insert new user
    const result = await pool.query(
-     `INSERT INTO users (id, name, email, prefs, firstin, lastin) 
-      VALUES ($1, $2, $3, $4, NOW(), NOW()) 
+     `INSERT INTO users (id, name, email, prefs, cart, firstin, lastin) 
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) 
       RETURNING *`,
      [
        uid, 
        name, 
        email,
-       JSON.stringify({ language: 'en' })
+       JSON.stringify({ language: 'en' }),
+       JSON.stringify({ items: [] })  // Empty cart
      ]
    );
 
