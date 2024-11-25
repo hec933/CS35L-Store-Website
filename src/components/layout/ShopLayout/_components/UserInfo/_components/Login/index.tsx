@@ -52,6 +52,11 @@ export default function Login() {
             alert('Login failed. Please check your credentials and try again.')
         }
     }
+
+    const closeLogoutPrompt = () => {
+        setShowLogoutPrompt(false);
+    };
+    
     return (
         <div className="fixed top-2 pb-3 z-50 ">
             <Text
