@@ -53,6 +53,11 @@ export default function Login() {
         }
     }
 
+    const handleLogout = () => {
+        setLoggedIn(false); //Set loggedIn to false to "log out"
+        setShowLogoutPrompt(false);
+    };
+    
     const closeLogoutPrompt = () => {
         setShowLogoutPrompt(false);
     };
