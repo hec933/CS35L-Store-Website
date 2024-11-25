@@ -28,55 +28,48 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Use POST' });
   }
 
   try {
     const token = req.headers.authorization?.split('Bearer ')[1];
     if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+      return res.status(401).json({ error: 'Token missing' });
     }
 
     const decodedToken = await adminAuth.verifyIdToken(token);
     const uid = decodedToken.uid;
-
-    // Get the product details from request body
     const { productId, quantity } = req.body;
-    
-    // First get current cart
+
+    // Read from db
     const currentCart = await pool.query(
       'SELECT cart FROM users WHERE id = $1',
       [uid]
     );
 
-    // Get the items array
-    const cart = currentCart.rows[0].cart;
-    const items = cart.items;
+    // Cart is a single row JSONB, or init to empty
+    const cart = currentCart.rows[0].cart || {};
 
-    // Check if product already in cart
-    const existingItemIndex = items.findIndex(item => item.productId === productId);
-
-    if (existingItemIndex >= 0) {
-      // Update quantity if item exists
-      items[existingItemIndex].quantity = quantity;
+    if (quantity > 0) {
+      // Add or update product quantity
+      cart[productId] = quantity;
     } else {
-      // Add new item if it doesn't
-      items.push({ productId, quantity });
+      // Remove product if quantity is 0
+      delete cart[productId];
     }
 
-    // Update the cart in database
+    // Write to db
     const result = await pool.query(
       'UPDATE users SET cart = $1 WHERE id = $2 RETURNING cart',
-      [JSON.stringify({ items }), uid]
+      [JSON.stringify(cart), uid]
     );
 
     return res.json({
       message: 'Cart updated',
       cart: result.rows[0].cart
     });
-
   } catch (error) {
     console.error('Error updating cart:', error);
-    return res.status(500).json({ error: 'Failed to update cart' });
+    return res.status(500).json({ error: 'Cart write error' });
   }
 }

@@ -70,7 +70,7 @@ export default async function handler(
        name, 
        email,
        JSON.stringify({ language: 'en' }),
-       JSON.stringify({ items: [] })  // Empty cart
+       JSON.stringify({})  // Empty cart
      ]
    );
 
