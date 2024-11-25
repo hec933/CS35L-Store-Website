@@ -5,28 +5,27 @@ import Text from '@/components/common/Text'
 import LoginPannel from '@/components/shared/LoginPannel'
 
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { initializeApp } from 'firebase/app'
+import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDvv8hpHMXE_aKHbXmCUGygFSEIiHZTvJM",
-  authDomain: "handy35l.firebaseapp.com",
-  projectId: "handy35l",
-  storageBucket: "handy35l.firebasestorage.app",
-  messagingSenderId: "690933385734",
-  appId: "1:690933385734:web:3171e6615b22ba54bc9187",
-  measurementId: "G-5P03H6DNQ5"
-};
+    apiKey: 'AIzaSyDvv8hpHMXE_aKHbXmCUGygFSEIiHZTvJM',
+    authDomain: 'handy35l.firebaseapp.com',
+    projectId: 'handy35l',
+    storageBucket: 'handy35l.firebasestorage.app',
+    messagingSenderId: '690933385734',
+    appId: '1:690933385734:web:3171e6615b22ba54bc9187',
+    measurementId: 'G-5P03H6DNQ5',
+}
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
-
+const app = initializeApp(firebaseConfig)
+const auth = getAuth(app)
+const googleProvider = new GoogleAuthProvider()
 
 export default function Login() {
     const [showModal, setShowModal] = useState(false)
@@ -37,31 +36,28 @@ export default function Login() {
         } else {
             enablePageScroll()
         }
-    }, [showModal]);
-
+    }, [showModal])
 
     const handleLogin = async () => {
         try {
-            const result = await signInWithPopup(auth, googleProvider);
-            const user = result.user;
-            console.log('Google Sign-In Successful:', user);
-            setShowModal(false); // Close the modal on successful login
-            alert(`Welcome, ${user.displayName}!`);
+            const result = await signInWithPopup(auth, googleProvider)
+            const user = result.user
+            console.log('Google Sign-In Successful:', user)
+            setShowModal(false) // Close the modal on successful login
+            alert(`Welcome, ${user.displayName}!`)
         } catch (error) {
             //console.error('Login failed:', error.message);
-            alert('Login failed. Please check your credentials and try again.');
+            alert('Login failed. Please check your credentials and try again.')
         }
-    
-
-    };
-
+    }
 
     return (
-        <>
+        <div className="fixed top-2 pb-3 z-50 ">
             <Text
-                size="sm"
+                size="md"
                 color="darkestBlue"
                 onClick={() => setShowModal(true)}
+                className="cursor-pointer hover:text-blue-500 transition-colors duration-300 py-2 px-4"
             >
                 Sign in / register
             </Text>
@@ -74,6 +70,6 @@ export default function Login() {
                     <LoginPannel handleLogin={handleLogin} />
                 </div>
             )}
-        </>
-    );
+        </div>
+    )
 }

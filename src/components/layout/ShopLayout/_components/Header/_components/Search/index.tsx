@@ -18,7 +18,7 @@ export default function Search() {
     return (
         <div className="relative">
             {/* Search input container with styling */}
-            <div className="w-[450px] border-2 border-uclaBlue px-4 py-2 rounded-lg">
+            <div className="w-[500px] border-2 border-uclaBlue px-4 py-2 rounded-lg">
                 <form
                     className="flex justify-between"
                     onSubmit={(e) => {
