@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker'
-import { Product, Review, Shop } from '@/types'
+import { Like, Product, Review, Shop } from '@/types'
 
 export function getMockProductData(defaultValue?: Partial<Product>) {
     const data: Product = {
@@ -20,6 +20,7 @@ export function getMockProductData(defaultValue?: Partial<Product>) {
             ),
         isChangable: defaultValue?.isChangable ?? faker.datatype.boolean(),
         isUsed: defaultValue?.isUsed ?? faker.datatype.boolean(),
+        // tags: Array.from({ length: 5 }).map(() => faker.lorem.word()),
         tags:
             (defaultValue?.tags ?? faker.datatype.boolean())
                 ? Array.from({
@@ -56,6 +57,18 @@ export function getMockReviewData(defaultValue?: Partial<Review>) {
         contents: defaultValue?.contents ?? faker.lorem.sentences(3, '\n'),
         createdBy: defaultValue?.createdBy ?? faker.string.uuid(),
         createdAt: defaultValue?.createdAt ?? faker.date.past().toString(),
+    }
+    return data
+}
+
+// Cart Like Mock data
+export function getMockLikeData(defaultValue?: Partial<Like>) {
+    const data: Like = {
+        id: defaultValue?.id ?? faker.string.uuid(),
+        productId: defaultValue?.productId ?? faker.string.uuid(),
+        createdBy: defaultValue?.createdBy ?? faker.string.uuid(),
+        createdAt: defaultValue?.createdAt ?? faker.date.past().toString(),
+        price: defaultValue?.price ?? Number((Math.random() * 100).toFixed(2)), // Random price between 0.00 and 100.00
     }
     return data
 }

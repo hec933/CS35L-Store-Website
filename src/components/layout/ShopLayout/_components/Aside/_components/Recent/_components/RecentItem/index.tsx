@@ -28,7 +28,7 @@ export default function RecentItem({ id, title, price, imageUrl }: Props) {
                         <Image
                             src={imageUrl}
                             alt={title}
-                            layout="fill" // Fill parent container
+                            fill
                             className="object-cover" // Maintain aspect ratio and cover the area
                         />
                     </div>
@@ -66,7 +66,7 @@ export default function RecentItem({ id, title, price, imageUrl }: Props) {
                                 <Image
                                     src={imageUrl}
                                     alt={title}
-                                    layout="fill" // Fill parent container
+                                    fill
                                     className="object-cover" // Maintain aspect ratio and cover the area
                                 />
                             </div>
