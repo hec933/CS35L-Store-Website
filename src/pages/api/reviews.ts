@@ -1,9 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { Pool } from 'pg';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-
-//fireeeeebase
+//fire
 if (!getApps().length) {
   initializeApp({
     credential: cert({
@@ -31,7 +30,6 @@ async function verifyAuth(req: NextApiRequest) {
   }
   return await adminAuth.verifyIdToken(token);
 }
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -40,104 +38,102 @@ export default async function handler(
     //auth
     const decodedToken = await verifyAuth(req);
     const userId = decodedToken.uid;
-
     switch (req.method) {
+    //get reviews
     case 'GET':
-        const { fromPage = '0', toPage = '1' } = req.query;
+        const { shopId, fromPage = '0', toPage = '1' } = req.query;
+        if (!shopId) {
+          return res.status(400).json({ error: 'Shop ID required' });
+        }
         const pageSize = 10;
         const offset = parseInt(fromPage as string) * pageSize;
         const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
-        const cartItems = await pool.query(
+        const reviews = await pool.query(
           `SELECT 
-            ci.*,
-            p.title,
-            p.price,
-            p.image_urls,
-            p.created_at as product_created_at,
-            s.id as shop_id,
-            s.name as shop_name
-          FROM cart_items ci
-          JOIN products p ON ci.product_id = p.id
-          JOIN shops s ON p.shop_id = s.id
-          WHERE ci.user_id = $1
-          ORDER BY ci.created_at DESC
+            r.*,
+            u.name as user_name
+          FROM shop_reviews r
+          LEFT JOIN users u ON r.user_id = u.id
+          WHERE r.shop_id = $1
+          ORDER BY r.created_at DESC
           LIMIT $2 OFFSET $3`,
-          [userId, limit, offset]
+          [shopId, limit, offset]
         );
-        //count cart
+        //count shops
         const countResult = await pool.query(
-          'SELECT COUNT(*) FROM cart_items WHERE user_id = $1',
-          [userId]
+          'SELECT COUNT(*) FROM shop_reviews WHERE shop_id = $1',
+          [shopId]
         );
+
         return res.json({
-          data: cartItems.rows,
+          data: reviews.rows,
           total: parseInt(countResult.rows[0].count)
         });
     case 'POST':
-        //add a new product
-        const { productId, quantity = 1 } = req.body;
-        //check availability
-        const productCheck = await pool.query(
-          'SELECT purchase_by FROM products WHERE id = $1',
-          [productId]
+        //new review
+        const { shopId: reviewShopId, content } = req.body;
+        if (!reviewShopId || !content) {
+          return res.status(400).json({ error: 'Shop ID and content required' });
+        }
+        //check shop availability
+        const shopCheck = await pool.query(
+          'SELECT id FROM shops WHERE id = $1',
+          [reviewShopId]
         );
-        if (productCheck.rows.length === 0) {
-          return res.status(404).json({ error: 'Product not found' });
+        if (shopCheck.rows.length === 0) {
+          return res.status(404).json({ error: 'Shop not found' });
         }
-        if (productCheck.rows[0].purchase_by) {
-          return res.status(400).json({ error: 'Product is already sold' });
-        }
-        //update both
+        //create
         const result = await pool.query(
-          `INSERT INTO cart_items (id, user_id, product_id, quantity, created_at)
+          `INSERT INTO shop_reviews (id, shop_id, user_id, content, created_at)
            VALUES ($1, $2, $3, $4, NOW())
-           ON CONFLICT (user_id, product_id)
-           DO UPDATE SET quantity = cart_items.quantity + $4
            RETURNING *`,
-          [require('crypto').randomUUID(), userId, productId, quantity]
+          [require('crypto').randomUUID(), reviewShopId, userId, content]
         );
         return res.json({
-          message: 'Item added to cart',
+          message: 'Review created successfully',
           data: result.rows[0]
         });
     case 'PUT':
-        //update quantity
-        const cartItemId = req.query.id;
-        const { quantity: newQuantity } = req.body;
-        if (!cartItemId) {
-          return res.status(400).json({ error: 'Cart item ID required' });
+        //update
+        const reviewId = req.query.id;
+        const { content: newContent } = req.body;
+        if (!reviewId || !newContent) {
+          return res.status(400).json({ error: 'Review ID and content required' });
         }
-        //update item
         const updateResult = await pool.query(
-          `UPDATE cart_items 
-           SET quantity = $1
+          `UPDATE shop_reviews 
+           SET content = $1
            WHERE id = $2 AND user_id = $3
            RETURNING *`,
-          [newQuantity, cartItemId, userId]
+          [newContent, reviewId, userId]
         );
         if (updateResult.rows.length === 0) {
-          return res.status(404).json({ error: 'Cart item not found' });
+          return res.status(404).json({ error: 'Review not found or not authorized' });
         }
         return res.json({
-          message: 'Cart item updated',
+          message: 'Review updated successfully',
           data: updateResult.rows[0]
         });
     case 'DELETE':
-        const itemId = req.query.id;
-        if (!itemId) {
-          return res.status(400).json({ error: 'Cart item ID required' });
+        const deleteId = req.query.id;
+        if (!deleteId) {
+          return res.status(400).json({ error: 'Review ID required' });
         }
-        await pool.query(
-          'DELETE FROM cart_items WHERE id = $1 AND user_id = $2',
-          [itemId, userId]
+        const deleteResult = await pool.query(
+          'DELETE FROM shop_reviews WHERE id = $1 AND user_id = $2 RETURNING *',
+          [deleteId, userId]
         );
-        return res.json({ message: 'Item removed from cart' });
-      default:
+        if (deleteResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Review not found or not authorized' });
+        }
+        return res.json({ message: 'Review deleted successfully' });
+    default:
         res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
         return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
   } catch (error) {
-    console.error('Error handling cart:', error);
+    console.error('Error handling review:', error);
     return res.status(500).json({ error: 'Failed to process request' });
   }
 }
