@@ -1,9 +1,15 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { Pool } from 'pg';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
-//fireeeeebase
+
+
+
+
+
+
+//firebase
 if (!getApps().length) {
   initializeApp({
     credential: cert({
@@ -15,6 +21,7 @@ if (!getApps().length) {
 }
 
 const adminAuth = getAuth();
+
 const pool = new Pool({
   user: 'postgres',     
   password: 'gg',    
@@ -37,107 +44,93 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    //auth
     const decodedToken = await verifyAuth(req);
     const userId = decodedToken.uid;
-
     switch (req.method) {
-    case 'GET':
-        const { fromPage = '0', toPage = '1' } = req.query;
-        const pageSize = 10;
-        const offset = parseInt(fromPage as string) * pageSize;
-        const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
-        const cartItems = await pool.query(
-          `SELECT 
-            ci.*,
-            p.title,
-            p.price,
-            p.image_urls,
-            p.created_at as product_created_at,
-            s.id as shop_id,
-            s.name as shop_name
-          FROM cart_items ci
-          JOIN products p ON ci.product_id = p.id
-          JOIN shops s ON p.shop_id = s.id
-          WHERE ci.user_id = $1
-          ORDER BY ci.created_at DESC
-          LIMIT $2 OFFSET $3`,
-          [userId, limit, offset]
-        );
-        //count cart
-        const countResult = await pool.query(
-          'SELECT COUNT(*) FROM cart_items WHERE user_id = $1',
-          [userId]
-        );
-        return res.json({
-          data: cartItems.rows,
-          total: parseInt(countResult.rows[0].count)
-        });
-    case 'POST':
-        //add a new product
-        const { productId, quantity = 1 } = req.body;
-        //check availability
-        const productCheck = await pool.query(
-          'SELECT purchase_by FROM products WHERE id = $1',
-          [productId]
-        );
-        if (productCheck.rows.length === 0) {
-          return res.status(404).json({ error: 'Product not found' });
+      case 'GET':
+        if (req.query.id) {
+          const shopResult = await pool.query(
+            'SELECT * FROM shops WHERE id = $1',
+            [req.query.id]
+          );
+          if (shopResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Shop not found' });
+          }
+          const [productCount, followerCount] = await Promise.all([
+            pool.query('SELECT COUNT(*) FROM products WHERE shop_id = $1', [req.query.id]),
+            pool.query('SELECT COUNT(*) FROM shop_followers WHERE shop_id = $1', [req.query.id])
+          ]);
+          return res.json({
+            data: {
+              ...shopResult.rows[0],
+              productCount: parseInt(productCount.rows[0].count),
+              followerCount: parseInt(followerCount.rows[0].count)
+            }
+          });
+        } else {
+          const page = parseInt(req.query.page as string) || 0;
+          const pageSize = 10;
+          const shopsResult = await pool.query(
+            'SELECT * FROM shops ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+            [pageSize, page * pageSize]
+          );
+          return res.json({ data: shopsResult.rows });
         }
-        if (productCheck.rows[0].purchase_by) {
-          return res.status(400).json({ error: 'Product is already sold' });
-        }
-        //update both
+
+      case 'POST':
+        const { name, imageUrl, introduce } = req.body;
         const result = await pool.query(
-          `INSERT INTO cart_items (id, user_id, product_id, quantity, created_at)
+          `INSERT INTO shops (id, name, image_url, introduce, created_at)
            VALUES ($1, $2, $3, $4, NOW())
-           ON CONFLICT (user_id, product_id)
-           DO UPDATE SET quantity = cart_items.quantity + $4
            RETURNING *`,
-          [require('crypto').randomUUID(), userId, productId, quantity]
+          [userId, name, imageUrl, introduce]
         );
+        
         return res.json({
-          message: 'Item added to cart',
+          message: 'Shop created successfully',
           data: result.rows[0]
         });
-    case 'PUT':
-        //update quantity
-        const cartItemId = req.query.id;
-        const { quantity: newQuantity } = req.body;
-        if (!cartItemId) {
-          return res.status(400).json({ error: 'Cart item ID required' });
+
+      case 'PUT':
+        const shopId = req.query.id;
+        if (!shopId) {
+          return res.status(400).json({ error: 'Shop ID required' });
         }
-        //update item
-        const updateResult = await pool.query(
-          `UPDATE cart_items 
-           SET quantity = $1
-           WHERE id = $2 AND user_id = $3
-           RETURNING *`,
-          [newQuantity, cartItemId, userId]
+        
+        const shop = await pool.query(
+          'SELECT id FROM shops WHERE id = $1',
+          [shopId]
         );
-        if (updateResult.rows.length === 0) {
-          return res.status(404).json({ error: 'Cart item not found' });
+        
+        if (shop.rows.length === 0) {
+          return res.status(404).json({ error: 'Shop not found' });
         }
+        
+        if (shop.rows[0].id !== userId) {
+          return res.status(403).json({ error: 'Not authorized to update this shop' });
+        }
+        
+        const updateResult = await pool.query(
+          `UPDATE shops 
+           SET name = COALESCE($1, name),
+               image_url = COALESCE($2, image_url),
+               introduce = COALESCE($3, introduce)
+           WHERE id = $4
+           RETURNING *`,
+          [req.body.name, req.body.imageUrl, req.body.introduce, shopId]
+        );
+        
         return res.json({
-          message: 'Cart item updated',
+          message: 'Shop updated successfully',
           data: updateResult.rows[0]
         });
-    case 'DELETE':
-        const itemId = req.query.id;
-        if (!itemId) {
-          return res.status(400).json({ error: 'Cart item ID required' });
-        }
-        await pool.query(
-          'DELETE FROM cart_items WHERE id = $1 AND user_id = $2',
-          [itemId, userId]
-        );
-        return res.json({ message: 'Item removed from cart' });
+
       default:
-        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+        res.setHeader('Allow', ['GET', 'POST', 'PUT']);
         return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
   } catch (error) {
-    console.error('Error handling cart:', error);
+    console.error('Error handling shop:', error);
     return res.status(500).json({ error: 'Failed to process request' });
   }
 }
