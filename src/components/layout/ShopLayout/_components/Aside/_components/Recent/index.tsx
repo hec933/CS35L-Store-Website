@@ -85,7 +85,7 @@ export default function Recent() {
           <div className="border-t border-lightestBlue border-dashed pt-3 mt-2 flex flex-col gap-2">
             {recentProducts
               .slice(currentPage * 3, (currentPage + 1) * 3)
-              .map(({ id, title, price, image_urls }) => (
+              .map(({ id, title, price, imageUrls }) => (
                 <RecentItem
                   key={id}
                   id={id}
