@@ -4,6 +4,7 @@ import Text from '@/components/common/Text'
 import LoginPannel from '@/components/shared/LoginPannel'
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { useRouter } from 'next/router'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDvv8hpHMXE_aKHbXmCUGygFSEIiHZTvJM',
@@ -22,14 +23,18 @@ const googleProvider = new GoogleAuthProvider()
 export default function Login() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
-    if (loggedIn) {
+    const storedLoginState = localStorage.getItem('loggedIn') === 'true'
+    setLoggedIn(storedLoginState)
+
+    if (storedLoginState) {
       disablePageScroll()
     } else {
       enablePageScroll()
     }
-  }, [loggedIn])
+  }, [])
 
   const handleLogin = async () => {
     try {
@@ -41,12 +46,17 @@ export default function Login() {
       await fetchUserData(token)
       setLoggedIn(true)
       setShowLogoutPrompt(true)
+
+      localStorage.setItem('loggedIn', 'true')
+      disablePageScroll()
+
+      router.push('/')
     } catch (error) {
       alert('Login failed. Please check your credentials and try again.')
     }
   }
 
-  const fetchUserData = async (token) => {
+  const fetchUserData = async (token: string) => {
     const response = await fetch('/api/user', {
       method: 'POST',
       headers: {
@@ -61,7 +71,12 @@ export default function Login() {
   const handleLogout = () => {
     setLoggedIn(false)
     setShowLogoutPrompt(false)
-    window.location.href = '/'
+
+    localStorage.removeItem('loggedIn')
+
+    enablePageScroll()
+
+    router.push('/')
   }
 
   const closeLogoutPrompt = () => {
@@ -69,7 +84,7 @@ export default function Login() {
   }
 
   return (
-    <div className="fixed top-2 pb-3 z-50 ">
+    <div className="fixed top-2 pb-3 z-50">
       {!loggedIn && (
         <Text
           size="md"
