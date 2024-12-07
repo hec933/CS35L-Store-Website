@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { disablePageScroll, enablePageScroll } from 'scroll-lock'
-
 import Text from '@/components/common/Text'
 import LoginPannel from '@/components/shared/LoginPannel'
-
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 
@@ -42,7 +40,7 @@ export default function Login() {
 
       await fetchUserData(token)
       setLoggedIn(true)
-      alert(`Welcome, ${user.displayName}!`)
+      setShowLogoutPrompt(true)
     } catch (error) {
       alert('Login failed. Please check your credentials and try again.')
     }
@@ -83,7 +81,7 @@ export default function Login() {
         </Text>
       )}
 
-      {loggedIn && (
+      {loggedIn && showLogoutPrompt && (
         <div
           className="fixed top-0 left-0 w-screen h-screen bg-lightestBlue z-50 flex justify-center items-center"
           onClick={closeLogoutPrompt}
