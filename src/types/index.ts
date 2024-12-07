@@ -1,11 +1,14 @@
-// Product type
+//type declarations
+
+
+//product
 export type Product = {
     id: string
     title: string
     price: number
     address: string
     description: string
-    imageUrls: string[]
+    image_urls: string[]
     isChangable: boolean
     isUsed: boolean
     tags: string[] | null
@@ -14,7 +17,8 @@ export type Product = {
     purchaseBy: string | null
 }
 
-// Shop type
+
+//shop
 export type Shop = {
     id: string
     name: string
@@ -23,7 +27,7 @@ export type Shop = {
     createdAt: string
 }
 
-// product review type
+//review
 export type Review = {
     id: string
     productId: string
@@ -32,7 +36,7 @@ export type Review = {
     createdAt: string
 }
 
-//cart list
+//cart
 export type Like = {
     id: string
     productId: string
@@ -49,3 +53,4 @@ export type User = {
     profileImageUrl: string | null;
     createdAt: string;
 };
+
