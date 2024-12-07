@@ -8,52 +8,54 @@ import { getShopLikes } from '@/repository/shops/getShopLikes'
 import { Like } from '@/types'
 
 type Props = {
-    initialLikes: Like[] // Initial liked products list fetched from server-side rendering (SSR)
-    count: number // Total number of liked products
-    shopId: string // Shop ID for fetching likes
+    initialLikes: Like[] 
+    count: number
+    shopId: string
 }
 
-/**
- * cart list
- */
+
 export default function LikeList({ initialLikes, count, shopId }: Props) {
     const [likes, setLikes] = useState(
-        initialLikes.map((item) => ({ ...item, quantity: 1 })),
-    ) // Add quantity to each liked product
-    const [totalPrice, setTotalPrice] = useState<number>(0) // State to track the total price of liked items
+        (initialLikes || []).map((item) => ({ ...item, quantity: 1 })), 
+    )
+    const [totalPrice, setTotalPrice] = useState<number>(0) 
 
     useEffect(() => {
-        // Fetch the list of liked products whenever the shopId changes
         ;(async () => {
             const { data } = await getShopLikes({
                 shopId,
-                fromPage: 0, // Fetch all items on one page
+                fromPage: 0,
                 toPage: 1,
             })
-
-            // Add quantity field to each product and update the state
-            setLikes(data.map((item) => ({ ...item, quantity: 1 })))
-
-            // Calculate the total price of the current items
-            const priceSum = data.reduce((sum, item) => sum + item.price * 1, 0) // Assume quantity = 1 initially
-            setTotalPrice(priceSum)
+            if (Array.isArray(data)) { // Ensure data is an array
+                setLikes(data.map((item) => ({ ...item, quantity: 1 })))
+                const priceSum = data.reduce((sum, item) => sum + item.price * 1, 0) // Assume quantity = 1 initially
+                setTotalPrice(priceSum)
+            } else {
+                setLikes([])
+                setTotalPrice(0)
+            }
         })()
-    }, [shopId]) // Dependencies: Re-run when shopId changes
-
-    // Update quantity and recalculate total price
+    }, [shopId]) 
+    
+    //update quantity
     const handleQuantityChange = (id: string, delta: number) => {
-        setLikes((prevLikes) =>
-            prevLikes.map((item) => {
-                if (item.id === id) {
-                    const updatedQuantity = Math.max(1, item.quantity + delta)
-                    return { ...item, quantity: updatedQuantity }
-                }
-                return item
-            }),
-        )
+        setLikes((prevLikes) => {
+            const updatedLikes = prevLikes
+                .map((item) => {
+                    if (item.id === id) {
+                        const updatedQuantity = Math.max(1, item.quantity + delta)
+                        return { ...item, quantity: updatedQuantity }
+                    }
+                    return item
+                })
+                .filter((item) => item.quantity > 0) // Remove items with quantity 0
+            return updatedLikes
+        })
     }
 
-    // Recalculate total price when likes state changes
+    
+    //calculate total
     useEffect(() => {
         const priceSum = likes.reduce(
             (sum, item) => sum + item.price * item.quantity,
@@ -62,15 +64,15 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
         setTotalPrice(priceSum)
     }, [likes])
 
-    // Handle the purchase logic here
+    
+    //purchase TODO NOT IMPLEMENTED
     const handlePurchase = () => {
         alert('Purchase completed!')
     }
 
-    /**
-     *  TODO:
-     *    If the quantity reaches 0, the item will be automatically removed from the cart list.
-     */
+
+
+    
     return (
         <div>
             {likes.length === 0 ? ( // If no liked products exist
@@ -87,7 +89,6 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
                                 <LikeItem productId={productId} />
 
                                 {/* Count */}
-                                {/* TODO: If the quantity reaches 0, the item will be automatically removed from the cart list. */}
                                 <div className="flex justify-between items-center mt-2 ">
                                     {/* - Button */}
                                     <Button
@@ -148,3 +149,5 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
         </div>
     )
 }
+
+
