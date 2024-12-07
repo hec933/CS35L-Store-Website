@@ -5,7 +5,6 @@ import LoginPannel from '@/components/shared/LoginPannel'
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 
-
 const firebaseConfig = {
   apiKey: 'AIzaSyDvv8hpHMXE_aKHbXmCUGygFSEIiHZTvJM',
   authDomain: 'handy35l.firebaseapp.com',
@@ -15,6 +14,7 @@ const firebaseConfig = {
   appId: '1:690933385734:web:3171e6615b22ba54bc9187',
   measurementId: 'G-5P03H6DNQ5',
 }
+
 const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const googleProvider = new GoogleAuthProvider()
@@ -40,7 +40,6 @@ export default function Login() {
 
       await fetchUserData(token)
       setLoggedIn(true)
-
       window.location.href = '/dashboard'
     } catch (error) {
       alert('Login failed. Please check your credentials and try again.')
@@ -57,13 +56,11 @@ export default function Login() {
 
     const data = await response.json()
     console.log('Local user data is:', data)
-    // Process the user data as needed
   }
 
   const handleLogout = () => {
     setLoggedIn(false)
     setShowLogoutPrompt(false)
-    // Redirect the user to the desired page after logout
     window.location.href = '/'
   }
 
@@ -77,7 +74,7 @@ export default function Login() {
         <Text
           size="md"
           color="darkestBlue"
-          onClick={() => setLoggedIn(false)} // Set loggedIn to false to show the modal
+          onClick={() => setLoggedIn(false)} 
           className="cursor-pointer hover:text-blue-500 transition-colors duration-300 py-2 px-4"
         >
           Sign in / register
@@ -114,3 +111,4 @@ export default function Login() {
     </div>
   )
 }
+
