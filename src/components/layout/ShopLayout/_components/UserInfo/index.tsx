@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Container from '@/components/layout/Container';
 import Wrapper from '@/components/layout/Wrapper';
 import Login from './_components/Login';
+import { fetchWithAuthToken } from '@/utils/auth';
 
 export default function UserInfo() {
     const [userName, setUserName] = useState<string | null>(null);
@@ -10,25 +11,8 @@ export default function UserInfo() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const token = localStorage.getItem('authToken');
-                if (!token) {
-                    setIsLoading(false);
-                    return;
-                }
-
-                const response = await fetch('/api/user', {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setUserName(data.user.name);
-                } else {
-                    console.error('Failed to fetch user data:', response.status);
-                }
+                const data = await fetchWithAuthToken('/api/user', 'POST');
+                setUserName(data.user.name);
             } catch (error) {
                 console.error('Error fetching user:', error);
             } finally {

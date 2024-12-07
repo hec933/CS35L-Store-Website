@@ -1,29 +1,68 @@
-import { faker } from '@faker-js/faker'
-import { Carousel } from 'react-responsive-carousel'
-import 'react-responsive-carousel/lib/styles/carousel.min.css' // requires a loader
-import Image from 'next/image'
+import { useEffect, useState } from 'react';
+import { Carousel } from 'react-responsive-carousel';
+import Image from 'next/image';
+import 'react-responsive-carousel/lib/styles/carousel.min.css';
+import { getProducts } from '@/repository/products/getProducts';
 
-// Banner component that displays a carousel of images
+//states
 export default function Banner() {
-    // Carousel component from react-responsive-carousel library
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    //fetch most liked
+    useEffect(() => {
+        const fetchMostLikedProducts = async () => {
+            try {
+                //fetch products
+                const { data } = await getProducts({ fromPage: 0, toPage: 1, mostLiked: true });
+                setProducts(data || []);
+            } catch (error) {
+                console.error('Failed to fetch most liked products:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchMostLikedProducts();
+    }, []);
+
+    //loading banner
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-96">
+                <span>loading banner</span>
+            </div>
+        );
+    }
+
+    //empty banner
+    if (products.length === 0) {
+        return (
+            <div className="flex justify-center items-center h-96">
+                <span>no banner items</span>
+            </div>
+        );
+    }
+
+    //render carousel
     return (
         <Carousel
-            className="my-8 " // Adds margin to the carousel
-            infiniteLoop // Enables infinite looping of the carousel slides
-            showThumbs={false} // Hides the thumbnail previews
-            showStatus={false} // Hides the slide status indicator
+            className="my-8"
+            infiniteLoop
+            showThumbs={false}
+            showStatus={false}
         >
-            {Array.from({ length: 3 }).map((_, idx) => (
-                // Creates an array of 3 items to generate three slides
-                <div key={idx} className="h-96">
+            {products.map((product) => (
+                //product image
+                <div key={product.id} className="h-96">
                     <Image
-                        src={faker.image.dataUri()}
-                        className="w-full h-full rounded-lg"
+                        src={product.image_urls[0]}
+                        className="w-full h-full rounded-lg object-cover"
                         fill
-                        alt={''}
+                        alt={product.title}
                     />
                 </div>
             ))}
         </Carousel>
-    )
+    );
 }
