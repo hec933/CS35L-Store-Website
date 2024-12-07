@@ -32,7 +32,7 @@ export type Review = {
     createdAt: string
 }
 
-// cart list
+//cart list
 export type Like = {
     id: string
     productId: string
@@ -40,3 +40,12 @@ export type Like = {
     createdAt: string
     price: number
 }
+
+//user
+export type User = {
+    id: string;
+    name: string;
+    email: string;
+    profileImageUrl: string | null;
+    createdAt: string;
+};
