@@ -1,5 +1,6 @@
-import { Shop } from '@/types'
-import { getAuthToken } from '@/utils/auth'
+import { Shop, Product } from '@/types';
+import { getAuthToken } from '@/utils/auth';
+
 
 //get shop
 export async function getShop(shopId: string): Promise<{ data: Shop }> {
