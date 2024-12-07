@@ -1,121 +1,94 @@
-import { useEffect, useState } from 'react'
-import { disablePageScroll, enablePageScroll } from 'scroll-lock'
-import Text from '@/components/common/Text'
-import LoginPannel from '@/components/shared/LoginPannel'
-import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
-import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyDvv8hpHMXE_aKHbXmCUGygFSEIiHZTvJM',
-  authDomain: 'handy35l.firebaseapp.com',
-  projectId: 'handy35l',
-  storageBucket: 'handy35l.firebasestorage.app',
-  messagingSenderId: '690933385734',
-  appId: '1:690933385734:web:3171e6615b22ba54bc9187',
-  measurementId: 'G-5P03H6DNQ5',
-}
+    apiKey: 'AIzaSyDvv8hpHMXE_aKHbXmCUGygFSEIiHZTvJM',
+    authDomain: 'handy35l.firebaseapp.com',
+    projectId: 'handy35l',
+    storageBucket: 'handy35l.firebasestorage.app',
+    messagingSenderId: '690933385734',
+    appId: '1:690933385734:web:3171e6615b22ba54bc9187',
+    measurementId: 'G-5P03H6DNQ5',
+};
 
-const app = initializeApp(firebaseConfig)
-const auth = getAuth(app)
-const googleProvider = new GoogleAuthProvider()
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 export default function Login() {
-  const [loggedIn, setLoggedIn] = useState<boolean>(false)
-  const router = useRouter()
+    const [loggedIn, setLoggedIn] = useState<boolean>(false);
 
-  useEffect(() => {
-    const storedLoggedIn = localStorage.getItem('loggedIn') === 'true'
-    setLoggedIn(storedLoggedIn)
+    useEffect(() => {
+        const storedToken = localStorage.getItem('authToken');
+        const isLoggedIn = !!storedToken;
+        setLoggedIn(isLoggedIn);
 
-    if (storedLoggedIn) {
-      disablePageScroll()
-    } else {
-      enablePageScroll()
-    }
-  }, [])
+  	//refresh token if still logged in
+        if (isLoggedIn) {
+            const refreshToken = async () => {
+                const user = auth.currentUser;
+                if (user) {
+                    const token = await user.getIdToken(/* forceRefresh */ true);
+                    localStorage.setItem('authToken', token);
+                }
+            };
 
-  const handleLogin = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider)
-      const user = result.user
-      const token = await user.getIdToken()
+            const interval = setInterval(refreshToken, 50 * 60 * 1000); // Refresh token every 50 minutes
+            return () => clearInterval(interval); // Cleanup on component unmount
+        }
+    }, []);
 
-      console.log('Google Sign-In Successful:', user)
-      localStorage.setItem('loggedIn', 'true')
-      await fetchUserData(token)
+    const handleLogin = async () => {
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
+            const idToken = await user.getIdToken();
 
-      setLoggedIn(true)
-      router.push('/')
-    } catch (error) {//don't assume logged in
-      console.error('Login failed:', error)
-      alert('Login failed. Please try again.')
-    }
-  }
+            console.log('Google Sign-In Successful:', user);
+            localStorage.setItem('authToken', idToken);
+            await sendTokenToServer(idToken);
 
-  const fetchUserData = async (token: string) => {
-    try {
-      const response = await fetch('/api/user', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+            setLoggedIn(true);
+        } catch (error) {
+            console.error('Login failed:', error);
+            alert('Login failed. Please try again.');
+        }
+    };
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data')
-      }
+    const sendTokenToServer = async (idToken: string) => {
+        try {
+            const response = await fetch('/api/token', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ idToken }),
+            });
 
-      const data = await response.json()
-      console.log('Local user data is:', data)
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-    }
-  }
+            if (!response.ok) {
+                throw new Error('Failed to verify token with server');
+            }
 
-  const handleLogout = () => {
-    localStorage.removeItem('loggedIn')
-    setLoggedIn(false)
-    router.push('/') // Redirect to home after logout
-  }
+            const data = await response.json();
+            console.log('Server verified token:', data);
+        } catch (error) {
+            console.error('Error during token verification:', error);
+        }
+    };
 
-  return (
-    <div className="fixed top-2 pb-3 z-50">
-      {!loggedIn && (
-        <Text
-          size="md"
-          color="darkestBlue"
-          onClick={() => setLoggedIn(false)}
-          className="cursor-pointer hover:text-blue-500 transition-colors duration-300 py-2 px-4"
-        >
-          Sign in / register
-        </Text>
-      )}
+    const handleLogout = () => {
+        localStorage.removeItem('authToken');
+        setLoggedIn(false);
+    };
 
-      {loggedIn && (
-        <div
-          className="fixed top-0 left-0 w-screen h-screen bg-lightestBlue z-50 flex justify-center items-center"
-        >
-          <div
-            className="bg-white p-6 rounded shadow-md w-64"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p>Are you sure you want to log out?</p>
-            <button className="mr-4" onClick={handleLogout}>
-              Yes
-            </button>
-            <button onClick={() => setLoggedIn(true)}>No</button>
-          </div>
+    return (
+        <div>
+            {loggedIn ? (
+                <button onClick={handleLogout}>Log out</button>
+            ) : (
+                <button onClick={handleLogin}>Log in with Google</button>
+            )}
         </div>
-      )}
-
-      {!loggedIn && (
-        <div
-          className={`fixed top-0 left-0 w-screen h-screen bg-gray-400/50 z-50 flex justify-center items-center`}
-        >
-          <LoginPannel handleLogin={handleLogin} />
-        </div>
-      )}
-    </div>
-  )
+    );
 }

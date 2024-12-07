@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+MAX_CHARS=${1:-20000}
+COUNT=1
+DIRNAME=$(basename "$PWD")
+OUTFILE="${DIRNAME}.tree${COUNT}"
+
+CHARS=0
+> "$OUTFILE"
+
+tree | while IFS= read -r line; do
+    LINE_LEN=$(( ${#line} + 1 ))
+
+    if (( CHARS + LINE_LEN > MAX_CHARS )); then
+        COUNT=$((COUNT+1))
+        OUTFILE="${DIRNAME}.tree${COUNT}"
+        > "$OUTFILE"
+        CHARS=0
+    fi
+
+    echo "$line" >> "$OUTFILE"
+    CHARS=$((CHARS + LINE_LEN))
+done

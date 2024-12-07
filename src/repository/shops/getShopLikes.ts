@@ -1,24 +1,17 @@
-import { Like } from '@/types'
-import { getMockLikeData } from '@/utils/mock'
-import { getShopLikeCount } from './getShopLikeCount'
+import { Like } from '@/types';
+import { fetchWithAuthToken } from '@/utils/auth';
 
-type Params = {
-    shopId: string
-    fromPage?: number
-    toPage?: number
-}
-
-// Like Cart page
 export async function getShopLikes({
-    shopId,
-}: Params): Promise<{ data: Like[] }> {
-    // Fetch the total number of likes dynamically
-    const { data: totalLikes } = await getShopLikeCount(shopId)
-
-    // Generate the number of likes based on the total count
-    const data: Like[] = Array.from({ length: totalLikes }).map(() =>
-        getMockLikeData({ createdBy: shopId }),
-    )
-
-    return Promise.resolve({ data })
+  shopId,
+  fromPage = 0,
+  toPage = 1,
+}: {
+  shopId: string;
+  fromPage?: number;
+  toPage?: number;
+}): Promise<{ data: Like[] }> {
+  return await fetchWithAuthToken(
+    `/api/cart?shopId=${shopId}&fromPage=${fromPage}&toPage=${toPage}`,
+    'GET',
+  );
 }

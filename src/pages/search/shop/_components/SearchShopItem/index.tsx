@@ -1,39 +1,39 @@
 import { useEffect, useState } from 'react'
-
 import Shop from '@/components/common/Shop'
 import Spinner from '@/components/common/Spinner'
+import { getAuthToken } from '@/utils/auth'
 import { getShopFollowerCount } from '@/repository/shops/getShopFollowerCount'
 import { getShopProductCount } from '@/repository/shops/getShopProductCount'
 
 type Props = {
-    id: string // Shop ID used to fetch additional data
-    name: string // Shop name to display
-    profileImageUrl?: string // URL for the shop's profile image
+    id: string
+    name: string
+    profileImageUrl?: string
 }
 
-// SearchShopItem component to display shop information and load counts
+//search for an item at a shop
 export default function SearchShopItem({ id, name, profileImageUrl }: Props) {
-    // State to store the follower count
     const [followerCount, setFollowerCount] = useState<number | undefined>()
-
-    // State to store the product count
     const [productCount, setProductCount] = useState<number | undefined>()
 
     useEffect(() => {
         ;(async () => {
-            // Fetch follower and product counts asynchronously
-            const [{ data: followerCount }, { data: productCount }] =
-                await Promise.all([
-                    getShopFollowerCount(id),
-                    getShopProductCount(id),
-                ])
+            try {
+                const token = await getAuthToken()
+                const [{ data: followerCount }, { data: productCount }] =
+                    await Promise.all([
+                        getShopFollowerCount(id, token),
+                        getShopProductCount(id, token),
+                    ])
 
-            setFollowerCount(followerCount) // Update the follower count state (
-            setProductCount(productCount) // Update the product count state
+                setFollowerCount(followerCount)
+                setProductCount(productCount)
+            } catch (error) {
+                console.error('Error fetching shop data:', error)
+            }
         })()
     }, [id])
 
-    // Show a loading spinner if data is not yet loaded
     if (followerCount === undefined || productCount === undefined) {
         return (
             <div className="border border-lighterBlue h-28 flex justify-center items-center rounded-lg">
@@ -42,7 +42,6 @@ export default function SearchShopItem({ id, name, profileImageUrl }: Props) {
         )
     }
 
-    // Render the Shop component with the loaded data
     return (
         <div className="border border-lighterBlue p-5 rounded-lg">
             <Shop
@@ -53,5 +52,5 @@ export default function SearchShopItem({ id, name, profileImageUrl }: Props) {
                 profileImageUrl={profileImageUrl}
             />
         </div>
-    )
-}
+ 
+

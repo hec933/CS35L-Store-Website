@@ -1,46 +1,55 @@
-import { InferGetServerSidePropsType } from 'next'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
-import Banner from './_components/Banner'
-import ProductList from './_components/ProductList'
-import Container from '@/components/layout/Container'
-import ShopLayout from '@/components/layout/ShopLayout'
-import Wrapper from '@/components/layout/Wrapper'
-import { getProducts } from '@/repository/products/getProducts'
-import Text from '@/components/common/Text'
-import LoginPannel from '@/components/shared/LoginPannel'
+import { InferGetServerSidePropsType } from 'next';
+import { useEffect, useState } from 'react';
+import Banner from './_components/Banner';
+import ProductList from './_components/ProductList';
+import Container from '@/components/layout/Container';
+import Wrapper from '@/components/layout/Wrapper';
+import { getProducts } from '@/repository/products/getProducts';
+import Text from '@/components/common/Text';
+import LoginPannel from '@/components/shared/LoginPannel';
+import { getAuthToken } from '@/utils/auth';
 
 export const getServerSideProps = async () => {
-    const { data } = await getProducts({ fromPage: 0, toPage: 2 })
-    return { props: { products: data } }
-}
+    const { data } = await getProducts({ fromPage: 0, toPage: 2 });
+    return { props: { products: data } };
+};
 
 export default function Home({
     products,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-    const [loggedIn, setLoggedIn] = useState(false)
-    const [showLoginModal, setShowLoginModal] = useState(false)
-    const router = useRouter()
+    const [loggedIn, setLoggedIn] = useState(false);
+    const [showLoginModal, setShowLoginModal] = useState(false);
 
     useEffect(() => {
-        const storedLoginState = localStorage.getItem('loggedIn') === 'true'
-        setLoggedIn(storedLoginState)
-    }, [])
+        const verifyToken = async () => {
+            try {
+                const token = await getAuthToken();
+                setLoggedIn(!!token);
+            } catch {
+                setLoggedIn(false);
+            }
+        };
+
+        verifyToken();
+    }, []);
 
     const handleLogin = async () => {
         try {
-            localStorage.setItem('loggedIn', 'true')
-            setLoggedIn(true)
-            setShowLoginModal(false)
+            const token = await getAuthToken();
+            if (token) {
+                localStorage.setItem('loggedIn', 'true');
+                setLoggedIn(true);
+                setShowLoginModal(false);
+            }
         } catch (error) {
-            alert('Login failed. Please try again.')
+            alert('Login failed. Please try again.');
         }
-    }
+    };
 
     const handleLogout = () => {
-        localStorage.removeItem('loggedIn')
-        setLoggedIn(false)
-    }
+        localStorage.removeItem('loggedIn');
+        setLoggedIn(false);
+    };
 
     return (
         <Wrapper>
@@ -49,7 +58,7 @@ export default function Home({
                 <ProductList initialProducts={products} />
             </Container>
 
-            <div className="fixed top-2 pb-3 z-50 ">
+            <div className="fixed top-2 pb-3 z-50">
                 {!loggedIn ? (
                     <Text
                         size="md"
@@ -85,5 +94,5 @@ export default function Home({
                 )}
             </div>
         </Wrapper>
-    )
+    );
 }

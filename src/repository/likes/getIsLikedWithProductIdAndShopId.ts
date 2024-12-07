@@ -1,11 +1,18 @@
+import { fetchWithAuthToken } from '@/utils/auth';
+
 type Params = {
-    productId: string
-    shopId: string
-}
-// like check (cart list)
+    productId: string;
+    shopId: string;
+};
+
 export async function getIsLikedWithProductIdAndShopId({
     productId,
     shopId,
 }: Params): Promise<{ data: boolean }> {
-    return Promise.resolve({ data: false })
+    const response = await fetchWithAuthToken(
+        `/api/cart/check?productId=${productId}&shopId=${shopId}`,
+        'GET'
+    );
+    return response;
 }
+
