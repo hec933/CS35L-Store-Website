@@ -2,6 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAuth } from 'firebase/auth';
 import { Pool } from 'pg';
 
+
+
 const pool = new Pool({
   user: 'postgres',     
   password: 'gg',    
