@@ -22,7 +22,6 @@ const googleProvider = new GoogleAuthProvider()
 
 export default function Login() {
   const [loggedIn, setLoggedIn] = useState<boolean>(false)
-  const [showLogoutPrompt, setShowLogoutPrompt] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -47,7 +46,7 @@ export default function Login() {
       await fetchUserData(token)
 
       setLoggedIn(true)
-      router.push('/')  // Redirect to home after login
+      router.push('/') // Redirect to home after login
     } catch (error) {
       alert('Login failed. Please check your credentials and try again.')
     }
@@ -60,20 +59,14 @@ export default function Login() {
         'Authorization': `Bearer ${token}`,
       },
     })
-
     const data = await response.json()
     console.log('Local user data is:', data)
   }
 
   const handleLogout = () => {
-    setLoggedIn(false)
-    setShowLogoutPrompt(false)
     localStorage.removeItem('loggedIn')
-    router.push('/')  // Redirect to home after logout
-  }
-
-  const closeLogoutPrompt = () => {
-    setShowLogoutPrompt(false)
+    setLoggedIn(false)
+    router.push('/') // Redirect to home after logout
   }
 
   return (
@@ -89,10 +82,9 @@ export default function Login() {
         </Text>
       )}
 
-      {loggedIn && showLogoutPrompt && (
+      {loggedIn && (
         <div
           className="fixed top-0 left-0 w-screen h-screen bg-lightestBlue z-50 flex justify-center items-center"
-          onClick={closeLogoutPrompt}
         >
           <div
             className="bg-white p-6 rounded shadow-md w-64"
@@ -102,16 +94,14 @@ export default function Login() {
             <button className="mr-4" onClick={handleLogout}>
               Yes
             </button>
-            <button onClick={closeLogoutPrompt}>No</button>
+            <button onClick={() => setLoggedIn(true)}>No</button>
           </div>
         </div>
       )}
 
       {!loggedIn && (
         <div
-          className={`fixed top-0 left-0 w-screen h-screen bg-gray-400/50 z-50 flex justify-center items-center ${
-            loggedIn ? 'hidden' : 'block'
-          }`}
+          className={`fixed top-0 left-0 w-screen h-screen bg-gray-400/50 z-50 flex justify-center items-center`}
         >
           <LoginPannel handleLogin={handleLogin} />
         </div>
