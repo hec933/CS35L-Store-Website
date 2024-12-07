@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { disablePageScroll, enablePageScroll } from 'scroll-lock'
+
 import Text from '@/components/common/Text'
 import LoginPannel from '@/components/shared/LoginPannel'
+
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 
@@ -14,7 +16,6 @@ const firebaseConfig = {
   appId: '1:690933385734:web:3171e6615b22ba54bc9187',
   measurementId: 'G-5P03H6DNQ5',
 }
-
 
 const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
@@ -41,7 +42,6 @@ export default function Login() {
 
       await fetchUserData(token)
       setLoggedIn(true)
-      setShowModal(false) // Close the login modal
       alert(`Welcome, ${user.displayName}!`)
     } catch (error) {
       alert('Login failed. Please check your credentials and try again.')
@@ -76,7 +76,7 @@ export default function Login() {
         <Text
           size="md"
           color="darkestBlue"
-          onClick={() => setLoggedIn(false)} 
+          onClick={() => setLoggedIn(false)}
           className="cursor-pointer hover:text-blue-500 transition-colors duration-300 py-2 px-4"
         >
           Sign in / register
@@ -86,7 +86,7 @@ export default function Login() {
       {loggedIn && (
         <div
           className="fixed top-0 left-0 w-screen h-screen bg-lightestBlue z-50 flex justify-center items-center"
-          onClick={closeLogoutPrompt} // Close the prompt if clicked outside
+          onClick={closeLogoutPrompt}
         >
           <div
             className="bg-white p-6 rounded shadow-md w-64"
