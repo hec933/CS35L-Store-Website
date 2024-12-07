@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Link from 'next/link';
-
 import ProductImage from './_components/ProductImage';
 import Button from '@/components/common/Button';
 import Product from '@/components/common/Product';
@@ -14,7 +13,6 @@ import Text from '@/components/common/Text';
 import Container from '@/components/layout/Container';
 import Wrapper from '@/components/layout/Wrapper';
 import ReviewItem from './_components/ReviewItem';
-
 import { fetchWithAuthToken } from '@/utils/auth';
 import { Review, Product as TProduct, Shop as TShop } from '@/types';
 import { addRecentItemId } from '@/utils/localstorage';
@@ -41,13 +39,34 @@ export const getServerSideProps: GetServerSideProps<{
         { data: reviewCount },
         { data: shopProducts },
     ] = await Promise.all([
-        fetchWithAuthToken(`/api/products/${productId}`, 'GET'),
-        fetchWithAuthToken(`/api/shops?id=${productId}`, 'GET'),
-        fetchWithAuthToken(`/api/shops/${productId}/products/count`, 'GET'),
-        fetchWithAuthToken(`/api/shops/${productId}/followers/count`, 'GET'),
-        fetchWithAuthToken(`/api/shops/${productId}/reviews`, 'GET'),
-        fetchWithAuthToken(`/api/shops/${productId}/reviews/count`, 'GET'),
-        fetchWithAuthToken(`/api/shops/${productId}/products`, 'GET'),
+        fetchWithAuthToken('/api/products', 'POST', { 
+            action: 'fetch',
+            productId 
+        }),
+        fetchWithAuthToken('/api/shops', 'POST', { 
+            action: 'fetch',
+            shopId: productId 
+        }),
+        fetchWithAuthToken('/api/shops', 'POST', { 
+            action: 'getProductCount',
+            shopId: productId 
+        }),
+        fetchWithAuthToken('/api/shops', 'POST', { 
+            action: 'getFollowerCount',
+            shopId: productId 
+        }),
+        fetchWithAuthToken('/api/reviews', 'POST', { 
+            action: 'fetch',
+            shopId: productId 
+        }),
+        fetchWithAuthToken('/api/reviews', 'POST', { 
+            action: 'getCount',
+            shopId: productId 
+        }),
+        fetchWithAuthToken('/api/products', 'POST', { 
+            action: 'fetch',
+            shopId: productId 
+        }),
     ]);
 
     return {
@@ -81,7 +100,24 @@ export default function ProductDetail({
         addRecentItemId(product.id);
     }, [product.id]);
 
-    const handleToggleLike = () => setIsLiked((prev) => !prev);
+
+    const handleToggleLike = async () => {
+    try {
+        if (isLiked) {
+            await fetchWithAuthToken('/api/cart', 'DELETE', { productId: product.id });
+        } else {
+            await fetchWithAuthToken('/api/cart', 'POST', { 
+                action: 'add',
+                productId: product.id,
+                quantity: 1 
+            });
+        }
+        setIsLiked(prev => !prev);
+    } catch (error) {
+        console.error('Error toggling cart:', error);
+    }
+    };
+
     const handleToggleFollow = () => setIsFollowed((prev) => !prev);
 
     return (

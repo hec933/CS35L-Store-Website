@@ -1,63 +1,57 @@
-//product
-export type Product = {
-    id: string;
-    title: string;
-    price: number;
-    address: string;
-    description: string;
-    imageUrls: string[];
-    isChangable: boolean;
-    isUsed: boolean;
-    tags: string[] | null;
-    createdAt: string;
-    createdBy: string;
-    purchaseBy: string | null;
-    likeCount: number;
+//types
+
+export type AdminRole = 'REGULAR' | 'STORE_ADMIN' | 'WEB_ADMIN';
+
+export type AdminInfo = {
+  role: AdminRole;
+  authorizedStores?: string[];
 };
 
-//market
-export type Market = {
-    id: string;
-    mostLiked: {
-        productId: string;
-        likeCount: number;
-    }[];
-    updatedAt: string;
-};
-
-//shop
 export type Shop = {
-    id: string;
-    name: string;
-    imageUrl: string | null;
-    introduce: string | null;
-    createdAt: string;
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  introduce: string | null;
+  createdAt: string;
 };
 
-//review
-export type Review = {
-    id: string;
-    productId: string;
-    contents: string;
-    createdBy: string;
-    createdAt: string;
+export type Product = {
+  id: string;
+  shopId: string;
+  title: string;
+  price: number;
+  description: string;
+  imageUrls: string[];
+  isChangable: boolean;
+  isUsed: boolean;
+  tags: string[];
+  createdAt: string;
+  createdBy: string;
 };
 
-
-//like or carted
-export type Like = {
-    id: string;
-    productId: string;
-    createdBy: string;
-    createdAt: string;
+export type StoreAdmin = {
+  id: string;
+  name: string;
+  email: string;
+  role: AdminRole;
 };
 
-//user
-export type User = {
-    id: string;
-    name: string;
-    email: string;
-    profileImageUrl: string | null;
-    createdAt: string;
+export type StorePermission = {
+  id: string;
+  userId: string;
+  shopId: string;
+  createdAt: string;
 };
 
+// API Response types
+export type AdminAuthResponse = {
+  isAuthorized: boolean;
+  role?: AdminRole;
+  authorizedStores?: string[];
+};
+
+export type AdminApiResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};

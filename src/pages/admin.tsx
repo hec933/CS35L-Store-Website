@@ -6,9 +6,6 @@ import Wrapper from '@/components/layout/Wrapper';
 
 declare const auth: any;
 
-
-
-//simple page to check auth and begin edit
 export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
@@ -23,6 +20,7 @@ export default function AdminPage() {
 
         const token = await user.getIdToken();
         const response = await fetch('/api/user', {
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
           }
