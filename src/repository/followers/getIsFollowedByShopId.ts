@@ -1,5 +1,6 @@
 import { getAuthToken } from '@/utils/auth';
-import { Shop } from '@/types'; // Import the Shop type
+import { Shop } from '@/types';
+import { User } from '@/types';
 
 type Params = {
     followerId: string;
