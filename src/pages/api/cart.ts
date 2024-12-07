@@ -14,10 +14,7 @@ if (!getApps().length) {
   });
 }
 
-//firebase auth
 const adminAuth = getAuth();
-
-//database connection
 const pool = new Pool({
   user: 'postgres',
   password: 'gg',
@@ -26,7 +23,8 @@ const pool = new Pool({
   database: 'handy',
 });
 
-//verify token
+
+//auth
 async function verifyAuth(req: NextApiRequest) {
   const token = req.headers.authorization?.split('Bearer ')[1];
   if (!token) {
@@ -35,129 +33,82 @@ async function verifyAuth(req: NextApiRequest) {
   return await adminAuth.verifyIdToken(token);
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+
+//switch on the request
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    //verify user
+    //verify
     const decodedToken = await verifyAuth(req);
     const userId = decodedToken.uid;
 
     switch (req.method) {
-      //get cart items
-      case 'GET':
-        const { fromPage = '0', toPage = '1' } = req.query;
-        const pageSize = 10;
-        const offset = parseInt(fromPage as string) * pageSize;
-        const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
-
-        const cartItems = await pool.query(
-          `SELECT 
-            ci.*,
-            p.title,
-            p.price,
-            p.image_urls,
-            p.created_at as product_created_at,
-            s.id as shop_id,
-            s.name as shop_name
-          FROM cart_items ci
-          JOIN products p ON ci.product_id = p.id
-          JOIN shops s ON p.shop_id = s.id
-          WHERE ci.user_id = $1
-          ORDER BY ci.created_at DESC
-          LIMIT $2 OFFSET $3`,
-          [userId, limit, offset]
-        );
-
-        const countResult = await pool.query(
-          'SELECT COUNT(*) FROM cart_items WHERE user_id = $1',
-          [userId]
-        );
-
-        return res.json({
-          data: cartItems.rows,
-          total: parseInt(countResult.rows[0].count),
-        });
-
-      //add cart item
-      case 'POST':
-        const { productId, quantity = 1 } = req.body;
-
-        const productCheck = await pool.query(
-          'SELECT purchase_by FROM products WHERE id = $1',
-          [productId]
-        );
-
-        if (productCheck.rows.length === 0) {
-          return res.status(404).json({ error: 'Product not found' });
+      case 'POST': {
+        const { productId, quantity } = req.body;
+        if (!productId || !quantity) {
+          return res.status(400).json({ error: 'Product ID and quantity required' });
         }
 
-        if (productCheck.rows[0].purchase_by) {
-          return res.status(400).json({ error: 'Product is already sold' });
-        }
-
-        const result = await pool.query(
-          `INSERT INTO cart_items (id, user_id, product_id, quantity, created_at)
-           VALUES (concat($2, '-', $3), $2, $3, $4, NOW())
-           ON CONFLICT (user_id, product_id)
-           DO UPDATE SET quantity = cart_items.quantity + $4
-           RETURNING *`,
+        //add
+        await pool.query(
+          `INSERT INTO cart_items (user_id, product_id, quantity, created_at)
+           VALUES ($1, $2, $3, NOW())
+           ON CONFLICT (user_id, product_id) DO UPDATE SET quantity = EXCLUDED.quantity`,
           [userId, productId, quantity]
         );
 
-        return res.json({
-          message: 'Item added to cart',
-          data: result.rows[0],
-        });
+        //update
+        await updateMostLiked();
 
-      //update cart item
-      case 'PUT':
-        const cartItemId = req.query.id;
-        const { quantity: newQuantity } = req.body;
+        return res.json({ message: 'Item added to cart' });
+      }
 
-        if (!cartItemId) {
-          return res.status(400).json({ error: 'Cart item ID required' });
+      case 'DELETE': {
+        const { productId } = req.query;
+        if (!productId) {
+          return res.status(400).json({ error: 'Product ID required' });
         }
 
-        const updateResult = await pool.query(
-          `UPDATE cart_items 
-           SET quantity = $1
-           WHERE id = $2 AND user_id = $3
-           RETURNING *`,
-          [newQuantity, cartItemId, userId]
-        );
-
-        if (updateResult.rows.length === 0) {
-          return res.status(404).json({ error: 'Cart item not found' });
-        }
-
-        return res.json({
-          message: 'Cart item updated',
-          data: updateResult.rows[0],
-        });
-
-      //delete cart item
-      case 'DELETE':
-        const itemId = req.query.id;
-
-        if (!itemId) {
-          return res.status(400).json({ error: 'Cart item ID required' });
-        }
-
+        //remove
         await pool.query(
-          'DELETE FROM cart_items WHERE id = $1 AND user_id = $2',
-          [itemId, userId]
+          'DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2',
+          [userId, productId]
         );
+
+        //update
+        await updateMostLiked();
 
         return res.json({ message: 'Item removed from cart' });
+      }
 
       default:
-        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+        //method
+        res.setHeader('Allow', ['POST', 'DELETE']);
         return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
   } catch (error) {
-    console.error('Error handling cart:', error);
+    //error
+    console.error('Error in cart handler:', error);
     return res.status(500).json({ error: 'Failed to process request' });
   }
 }
+
+//update
+async function updateMostLiked() {
+  const result = await pool.query(
+    `SELECT p.id, p.title, COUNT(l.id) AS like_count
+     FROM products p
+     LEFT JOIN likes l ON l.product_id = p.id
+     GROUP BY p.id
+     ORDER BY like_count DESC, p.created_at DESC
+     LIMIT 100`
+  );
+
+  const mostLiked = result.rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    like_count: parseInt(row.like_count, 10),
+  }));
+
+  await pool.query('UPDATE market SET most_liked = $1', [JSON.stringify(mostLiked)]);
+}
+
