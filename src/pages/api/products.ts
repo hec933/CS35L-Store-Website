@@ -17,24 +17,6 @@ if (!getApps().length) {
   });
 }
 
-
-
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { Pool } from 'pg';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-
-// firebase admin sdk initialization
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: 'handy35l',
-      clientEmail: 'firebase-adminsdk-fr9rc@handy35l.iam.gserviceaccount.com',
-      privateKey: `-----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----`, // Keep key safe
-    }),
-  });
-}
-
 const adminAuth = getAuth();
 const pool = new Pool({
   user: 'postgres',
