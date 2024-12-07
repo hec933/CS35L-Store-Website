@@ -1,8 +1,11 @@
-import { getAuthToken } from '@/utils/auth'
+import { getAuthToken } from '@/utils/auth';
+import { Shop } from '@/types'; // Import the Shop type
+
 type Params = {
-    followerId: string
-    followedId: string
-}
+    followerId: string;
+    followedId: string;
+};
+
 //getif followed
 export async function getIsFollowedByShopId({
     followerId,
@@ -53,22 +56,22 @@ export async function unfollowShop(shopId: string): Promise<void> {
 //get the users followed shops
 export async function getFollowedShops({
     fromPage = 0,
-    toPage = 1
+    toPage = 1,
 }: {
-    fromPage?: number
-    toPage?: number
+    fromPage?: number;
+    toPage?: number;
 } = {}): Promise<{ data: Shop[] }> {
-    const token = await getAuthToken()
+    const token = await getAuthToken();
     const response = await fetch(
         `/api/followers/following?fromPage=${fromPage}&toPage=${toPage}`,
         {
             headers: {
-                'Authorization': `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             }
         }
-    )
-    if (!response.ok) throw new Error('Failed to fetch followed shops')
-    return await response.json()
+    );
+    if (!response.ok) throw new Error('Failed to fetch followed shops');
+    return await response.json();
 }
 
 
