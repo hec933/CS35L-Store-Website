@@ -52,5 +52,4 @@ export default function SearchShopItem({ id, name, profileImageUrl }: Props) {
                 profileImageUrl={profileImageUrl}
             />
         </div>
- 
-
+)};
