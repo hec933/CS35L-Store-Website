@@ -15,6 +15,7 @@ const firebaseConfig = {
   measurementId: 'G-5P03H6DNQ5',
 }
 
+
 const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const googleProvider = new GoogleAuthProvider()
@@ -40,7 +41,8 @@ export default function Login() {
 
       await fetchUserData(token)
       setLoggedIn(true)
-      window.location.href = '/dashboard'
+      setShowModal(false) // Close the login modal
+      alert(`Welcome, ${user.displayName}!`)
     } catch (error) {
       alert('Login failed. Please check your credentials and try again.')
     }
@@ -84,11 +86,11 @@ export default function Login() {
       {loggedIn && (
         <div
           className="fixed top-0 left-0 w-screen h-screen bg-lightestBlue z-50 flex justify-center items-center"
-          onClick={closeLogoutPrompt} 
+          onClick={closeLogoutPrompt} // Close the prompt if clicked outside
         >
           <div
             className="bg-white p-6 rounded shadow-md w-64"
-            onClick={(e) => e.stopPropagation()} 
+            onClick={(e) => e.stopPropagation()}
           >
             <p>Are you sure you want to log out?</p>
             <button className="mr-4" onClick={handleLogout}>
@@ -111,4 +113,3 @@ export default function Login() {
     </div>
   )
 }
-
