@@ -7,11 +7,14 @@ import Button from '@/components/common/Button'
 import { getShopLikes } from '@/repository/shops/getShopLikes'
 import { Like } from '@/types'
 
+
+
 type Props = {
     initialLikes: Like[] 
     count: number
     shopId: string
 }
+
 
 
 export default function LikeList({ initialLikes, count, shopId }: Props) {
@@ -27,9 +30,9 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
                 fromPage: 0,
                 toPage: 1,
             })
-            if (Array.isArray(data)) { // Ensure data is an array
+            if (Array.isArray(data)) {
                 setLikes(data.map((item) => ({ ...item, quantity: 1 })))
-                const priceSum = data.reduce((sum, item) => sum + item.price * 1, 0) // Assume quantity = 1 initially
+                const priceSum = data.reduce((sum, item) => sum + item.price * 1, 0) 
                 setTotalPrice(priceSum)
             } else {
                 setLikes([])
@@ -38,7 +41,6 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
         })()
     }, [shopId]) 
     
-    //update quantity
     const handleQuantityChange = (id: string, delta: number) => {
         setLikes((prevLikes) => {
             const updatedLikes = prevLikes
@@ -49,13 +51,11 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
                     }
                     return item
                 })
-                .filter((item) => item.quantity > 0) // Remove items with quantity 0
+                .filter((item) => item.quantity > 0) 
             return updatedLikes
         })
     }
 
-    
-    //calculate total
     useEffect(() => {
         const priceSum = likes.reduce(
             (sum, item) => sum + item.price * item.quantity,
@@ -64,22 +64,16 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
         setTotalPrice(priceSum)
     }, [likes])
 
-    
-    //purchase TODO NOT IMPLEMENTED
     const handlePurchase = () => {
         alert('Purchase completed!')
     }
 
-
-
-    
     return (
         <div>
-            {likes.length === 0 ? ( // If no liked products exist
+            {likes.length === 0 ? (
                 <Text color="uclaBlue"> Cart is empty. </Text>
             ) : (
                 <>
-                    {/* Grid layout for displaying liked products */}
                     <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {likes.map(({ id, productId, price, quantity }) => (
                             <div
@@ -88,9 +82,7 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
                             >
                                 <LikeItem productId={productId} />
 
-                                {/* Count */}
                                 <div className="flex justify-between items-center mt-2 ">
-                                    {/* - Button */}
                                     <Button
                                         className="p-2 bg-uclaBlue text-sm"
                                         onClick={() =>
@@ -100,10 +92,8 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
                                         -
                                     </Button>
 
-                                    {/* quantity */}
                                     <Text size="md">{quantity}</Text>
 
-                                    {/* + Button */}
                                     <Button
                                         className="p-2 bg-uclaBlue text-sm"
                                         onClick={() =>
@@ -120,9 +110,7 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
                         ))}
                     </div>
 
-                    {/* Total Price and Purchase Button */}
                     <div className="mt-6 flex flex-col items-end">
-                        {/* Display total price */}
                         <Text
                             size="lg"
                             color="darkestBlue"
@@ -135,7 +123,6 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
                             }).format(totalPrice)}
                         </Text>
 
-                        {/* Purchase button */}
                         <Button
                             onClick={handlePurchase}
                             color="uclaBlue"
