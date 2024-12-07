@@ -19,86 +19,105 @@ if (!getApps().length) {
 
 
 
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { Pool } from 'pg';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+
+// firebase admin sdk initialization
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: 'handy35l',
+      clientEmail: 'firebase-adminsdk-fr9rc@handy35l.iam.gserviceaccount.com',
+      privateKey: `-----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----`, // Keep key safe
+    }),
+  });
+}
 
 const adminAuth = getAuth();
 const pool = new Pool({
-    user: 'postgres',
-    password: 'gg',
-    host: 'localhost',
-    port: 5432,
-    database: 'handy'
+  user: 'postgres',
+  password: 'gg',
+  host: 'localhost',
+  port: 5432,
+  database: 'handy',
 });
 
-
-
+// verify token
 async function verifyAuth(req: NextApiRequest) {
-    const token = req.headers.authorization?.split('Bearer ')[1];
-    if (!token) {
-        throw new Error('No token provided');
-    }
-    return await adminAuth.verifyIdToken(token);
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) {
+    throw new Error('No token provided');
+  }
+  return await adminAuth.verifyIdToken(token);
 }
 
-
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    try {
-        switch (req.method) {
-            case 'GET': {
-                const { shopId, keyword, tag, fromPage = '0', toPage = '1', mostLiked } = req.query;
+  try {
+    // verify token and get userId
+    const decodedToken = await verifyAuth(req);
+    const userId = decodedToken.uid;
 
-                if (mostLiked) {
-                         const result = await pool.query(
-                        `SELECT 
-                            p.*, 
-                            COUNT(ci.id) AS cart_count 
-                         FROM products p
-                         LEFT JOIN cart_items ci ON ci.product_id = p.id
-                         GROUP BY p.id
-                         ORDER BY cart_count DESC
-                         LIMIT 10`
-                    );
-                    return res.json({ data: result.rows });
-                }
+    switch (req.method) {
+      case 'GET': {
+        const { shopId, keyword, tag, fromPage = '0', toPage = '1', mostLiked } = req.query;
 
-                let query = 'SELECT * FROM products WHERE 1=1';
-                const params: any[] = [];
-                let paramCount = 1;
-
-                if (shopId) {
-                    query += ` AND shop_id = $${paramCount}`;
-                    params.push(shopId);
-                    paramCount++;
-                }
-
-                if (keyword) {
-                    query += ` AND (title ILIKE $${paramCount} OR description ILIKE $${paramCount})`;
-                    params.push(`%${keyword}%`);
-                    paramCount++;
-                }
-
-                if (tag) {
-                    query += ` AND $${paramCount} = ANY(tags)`;
-                    params.push(tag);
-                    paramCount++;
-                }
-
-                const pageSize = 10;
-                const offset = parseInt(fromPage as string) * pageSize;
-                const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
-
-                query += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-                params.push(limit, offset);
-
-                const result = await pool.query(query, params);
-                return res.json({ data: result.rows });
-            }
-            default:
-                res.setHeader('Allow', ['GET']);
-                return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+        if (mostLiked) {
+          // query for most liked products
+          const result = await pool.query(
+            `SELECT p.*, COUNT(ci.id) AS cart_count 
+             FROM products p 
+             LEFT JOIN cart_items ci ON ci.product_id = p.id
+             GROUP BY p.id
+             ORDER BY cart_count DESC
+             LIMIT 10`
+          );
+          return res.json({ data: result.rows });
         }
-    } catch (error) {
-        console.error('Error in products handler:', error);
-        return res.status(500).json({ error: 'Failed to process request' });
+
+        let query = 'SELECT * FROM products WHERE 1=1';
+        const params: any[] = [];
+        let paramCount = 1;
+
+        // dynamic query building based on conditions
+        if (shopId) {
+          query += ` AND shop_id = $${paramCount}`;
+          params.push(shopId);
+          paramCount++;
+        }
+
+        if (keyword) {
+          query += ` AND (title ILIKE $${paramCount} OR description ILIKE $${paramCount})`;
+          params.push(`%${keyword}%`);
+          paramCount++;
+        }
+
+        if (tag) {
+          query += ` AND $${paramCount} = ANY(tags)`;
+          params.push(tag);
+          paramCount++;
+        }
+
+        // pagination
+        const pageSize = 10;
+        const offset = parseInt(fromPage as string) * pageSize;
+        const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
+
+        query += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+        params.push(limit, offset);
+
+        // execute query
+        const result = await pool.query(query, params);
+        return res.json({ data: result.rows });
+      }
+
+      default:
+        res.setHeader('Allow', ['GET']);
+        return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
+  } catch (error) {
+    console.error('Error in products handler:', error);
+    return res.status(500).json({ error: 'Failed to process request' });
+  }
 }

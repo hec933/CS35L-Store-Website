@@ -1,7 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { Pool } from 'pg';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { Pool } from 'pg'
+import { getAuth } from 'firebase-admin/auth'
+import { initializeApp, getApps, cert } from 'firebase-admin/app'
+
 
 if (!getApps().length) {
   initializeApp({
@@ -34,41 +35,45 @@ V8Ve2BOHeYg7pLiOU+A+sVDYRyzhvsdp/1PPtnSY2GS58LW8rRJuQ4IzBRZq+NYx
 H8TzcxOVxmqPnvw3v76mGgyTLy3ia+c65p1i6n+RAoGAUOqKgL5azbcHyXgDKmsf
 NdPYknxtx5eXisyPXhM1va+w4qAol5/1Nm9xuMaoHyXs91jfbLcdOQIDZuTUsCld
 gnb+F1cjIQObzwE7iKd4n+Fo48wBUJs6MAnnXkFnB0CK4uasbzps4F2FzW8ZPAjL
-dbDeKKJ0oolY/WW0jdFy9PE=
------END PRIVATE KEY-----`
+dbDeKKJ0oolY/WW0jdFy9PE= 
+-----END PRIVATE KEY-----`,
     }),
-  });
+  })
 }
 
-const adminAuth = getAuth();
+const adminAuth = getAuth()
 const pool = new Pool({
   user: 'postgres',
   password: 'gg',
   host: 'localhost',
   port: 5432,
   database: 'handy'
-});
+})
 
+// auth function to verify token
 async function verifyAuth(req: NextApiRequest) {
-  const token = req.headers.authorization?.split('Bearer ')[1];
+  const token = req.headers.authorization?.split('Bearer ')[1]
   if (!token) {
-    throw new Error('No token provided');
+    throw new Error('No token provided')
   }
-  return await adminAuth.verifyIdToken(token);
+  return await adminAuth.verifyIdToken(token)
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const decodedToken = await verifyAuth(req);
-    const userId = decodedToken.uid;
+    // verify auth token
+    const decodedToken = await verifyAuth(req)
+    const userId = decodedToken.uid
 
     switch (req.method) {
       case 'GET':
         if (req.query.shopId) {
-          const { shopId, fromPage = '0', toPage = '1' } = req.query;
-          const pageSize = 10;
-          const offset = parseInt(fromPage as string) * pageSize;
-          const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
+          const { shopId, fromPage = '0', toPage = '1' } = req.query
+          const pageSize = 10
+          const offset = parseInt(fromPage as string) * pageSize
+          const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize
+
+          // fetch followers
           const followers = await pool.query(
             `SELECT 
               f.*,
@@ -79,21 +84,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ORDER BY f.created_at DESC
             LIMIT $2 OFFSET $3`,
             [shopId, limit, offset]
-          );
+          )
 
+          // count followers
           const countResult = await pool.query(
             'SELECT COUNT(*) FROM shop_followers WHERE shop_id = $1',
             [shopId]
-          );
+          )
+
           return res.json({
             data: followers.rows,
             total: parseInt(countResult.rows[0].count)
-          });
+          })
         } else {
-          const { fromPage = '0', toPage = '1' } = req.query;
-          const pageSize = 10;
-          const offset = parseInt(fromPage as string) * pageSize;
-          const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
+          // fetch followed shops
+          const { fromPage = '0', toPage = '1' } = req.query
+          const pageSize = 10
+          const offset = parseInt(fromPage as string) * pageSize
+          const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize
+
           const followedShops = await pool.query(
             `SELECT 
               s.*,
@@ -104,46 +113,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ORDER BY f.created_at DESC
             LIMIT $2 OFFSET $3`,
             [userId, limit, offset]
-          );
-          return res.json({ data: followedShops.rows });
+          )
+
+          return res.json({ data: followedShops.rows })
         }
 
       case 'POST':
-        const { shopId } = req.body;
+        const { shopId } = req.body
         if (!shopId) {
-          return res.status(400).json({ error: 'Shop ID required' });
+          return res.status(400).json({ error: 'Shop ID required' })
         }
+
+        // check shop
         const shopCheck = await pool.query(
           'SELECT id FROM shops WHERE id = $1',
           [shopId]
-        );
+        )
         if (shopCheck.rows.length === 0) {
-          return res.status(404).json({ error: 'Shop not found' });
+          return res.status(404).json({ error: 'Shop not found' })
         }
+
+        // follow shop
         await pool.query(
-          `INSERT INTO shop_followers (id, shop_id, user_id, created_at)
-           VALUES ($1, $2, $3, NOW())
+          `INSERT INTO shop_followers (shop_id, user_id, created_at)
+           VALUES ($1, $2, NOW())
            ON CONFLICT (shop_id, user_id) DO NOTHING`,
-          [require('crypto').randomUUID(), shopId, userId]
-        );
-        return res.json({ message: 'Shop followed successfully' });
+          [shopId, userId]
+        )
+
+        return res.json({ message: 'Shop followed successfully' })
 
       case 'DELETE':
-        const unfollowShopId = req.query.shopId;
+        const unfollowShopId = req.query.shopId
         if (!unfollowShopId) {
-          return res.status(400).json({ error: 'Shop ID required' });
+          return res.status(400).json({ error: 'Shop ID required' })
         }
+
+        // unfollow shop
         await pool.query(
           'DELETE FROM shop_followers WHERE shop_id = $1 AND user_id = $2',
           [unfollowShopId, userId]
-        );
-        return res.json({ message: 'Shop unfollowed successfully' });
+        )
+
+        return res.json({ message: 'Shop unfollowed successfully' })
 
       default:
-        res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
-        return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+        res.setHeader('Allow', ['GET', 'POST', 'DELETE'])
+        return res.status(405).json({ error: `Method ${req.method} Not Allowed` })
     }
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to process request' });
+    return res.status(500).json({ error: 'Failed to process request' })
   }
 }
+
+
