@@ -1,45 +1,55 @@
-// Product type
+//product
 export type Product = {
-    id: string
-    title: string
-    price: number
-    address: string
-    description: string
-    imageUrls: string[]
-    isChangable: boolean
-    isUsed: boolean
-    tags: string[] | null
-    createdAt: string
-    createdBy: string
-    purchaseBy: string | null
-}
+    id: string;
+    title: string;
+    price: number;
+    address: string;
+    description: string;
+    imageUrls: string[];
+    isChangable: boolean;
+    isUsed: boolean;
+    tags: string[] | null;
+    createdAt: string;
+    createdBy: string;
+    purchaseBy: string | null;
+    likeCount: number;
+};
 
-// Shop type
+//market
+export type Market = {
+    id: string;
+    mostLiked: {
+        productId: string;
+        likeCount: number;
+    }[];
+    updatedAt: string;
+};
+
+//shop
 export type Shop = {
-    id: string
-    name: string
-    imageUrl: string | null
-    introduce: string | null
-    createdAt: string
-}
+    id: string;
+    name: string;
+    imageUrl: string | null;
+    introduce: string | null;
+    createdAt: string;
+};
 
-// product review type
+//review
 export type Review = {
-    id: string
-    productId: string
-    contents: string
-    createdBy: string
-    createdAt: string
-}
+    id: string;
+    productId: string;
+    contents: string;
+    createdBy: string;
+    createdAt: string;
+};
 
-//cart list
+//like
 export type Like = {
-    id: string
-    productId: string
-    createdBy: string
-    createdAt: string
-    price: number
-}
+    id: string;
+    productId: string;
+    createdBy: string;
+    createdAt: string;
+};
 
 //user
 export type User = {
