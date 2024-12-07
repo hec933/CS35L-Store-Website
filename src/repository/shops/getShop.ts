@@ -1,5 +1,5 @@
-import { Shop, Product } from '@/types';
-import { getAuthToken } from '@/utils/auth';
+import { Shop, Product } from '@/types'
+import { getAuthToken } from '@/utils/auth'
 
 
 //get shop
