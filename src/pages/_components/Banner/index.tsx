@@ -8,15 +8,18 @@ export default function Banner() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // fetch most liked products
   useEffect(() => {
     const fetchMostLikedProducts = async () => {
       try {
-        const response = await fetch('/api/market');
-        const { most_liked } = await response.json();
-
-        // Select 10 random items
-        const shuffled = most_liked.sort(() => 0.5 - Math.random());
+        const response = await fetch('/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ mostLiked: true })
+        });
+        const { data } = await response.json();
+        const shuffled = data.sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 10);
         setProducts(selected);
       } catch (error) {
@@ -25,11 +28,9 @@ export default function Banner() {
         setLoading(false);
       }
     };
-
     fetchMostLikedProducts();
   }, []);
 
-  //loading banner
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -38,7 +39,6 @@ export default function Banner() {
     );
   }
 
-  //empty banner
   if (products.length === 0) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -47,7 +47,6 @@ export default function Banner() {
     );
   }
 
-  //render carousel
   return (
     <Carousel
       className="my-8"

@@ -1,8 +1,9 @@
+// fetch initial data
 import { useEffect, useState } from 'react';
 import LikeItem from '../LikeItem';
 import Text from '@/components/common/Text';
 import Button from '@/components/common/Button';
-import { getShopLikes } from '@/repository/shops/getShopLikes';
+import { fetchWithAuthToken } from '@/utils/auth';
 import { Like } from '@/types';
 
 type Props = {
@@ -13,22 +14,28 @@ type Props = {
 
 export default function LikeList({ initialLikes, count, shopId }: Props) {
   const [likes, setLikes] = useState(
-    (initialLikes || []).map((item) => ({ ...item, quantity: 1 })),
+    (initialLikes || []).map((item) => ({ ...item, quantity: 1 }))
   );
   const [totalPrice, setTotalPrice] = useState<number>(0);
 
   useEffect(() => {
+    // fetch likes data
     (async () => {
-      const { data } = await getShopLikes({
-        shopId,
-        fromPage: 0,
-        toPage: 1,
-      });
-      if (Array.isArray(data)) {
-        setLikes(data.map((item) => ({ ...item, quantity: 1 })));
-        const priceSum = data.reduce((sum, item) => sum + item.price * 1, 0);
-        setTotalPrice(priceSum);
-      } else {
+      try {
+        const { data } = await fetchWithAuthToken('/api/likes', 'POST', {
+          action: 'getShopLikes',
+          shopId,
+        });
+        if (Array.isArray(data)) {
+          setLikes(data.map((item) => ({ ...item, quantity: 1 })));
+          const priceSum = data.reduce((sum, item) => sum + item.price * 1, 0);
+          setTotalPrice(priceSum);
+        } else {
+          setLikes([]);
+          setTotalPrice(0);
+        }
+      } catch (error) {
+        console.error('Error fetching likes:', error);
         setLikes([]);
         setTotalPrice(0);
       }
@@ -36,6 +43,7 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
   }, [shopId]);
 
   const handleQuantityChange = (id: string, delta: number) => {
+    // update quantity
     setLikes((prevLikes) => {
       const updatedLikes = prevLikes
         .map((item) => {
@@ -51,73 +59,51 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
   };
 
   useEffect(() => {
+    // update total price
     const priceSum = likes.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0,
+      0
     );
     setTotalPrice(priceSum);
   }, [likes]);
 
-  const handlePurchase = () => {
-    alert('Purchase completed!');
+  const handlePurchase = async () => {
+    // handle purchase
+    try {
+      await fetchWithAuthToken('/api/likes', 'POST', {
+        action: 'purchase',
+        likes,
+      });
+      alert('Thanks for testing!');
+    } catch (error) {
+      console.error('Error completing purchase:', error);
+      alert('Failed to complete purchase.');
+    }
   };
 
   return (
     <div>
-      {likes.length === 0 ? (
-        <Text color="uclaBlue">Cart is empty.</Text>
-      ) : (
-        <>
-          <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {likes.map(({ id, productId, price, quantity }) => (
-              <div key={id} className="max-w-[180px] w-full mx-auto">
-                <LikeItem productId={productId} />
-
-                <div className="flex justify-between items-center mt-2 ">
-                  <Button
-                    className="p-2 bg-uclaBlue text-sm"
-                    onClick={() => handleQuantityChange(id, -1)}
-                  >
-                    -
-                  </Button>
-
-                  <Text size="md">{quantity}</Text>
-
-                  <Button
-                    className="p-2 bg-uclaBlue text-sm"
-                    onClick={() => handleQuantityChange(id, 1)}
-                  >
-                    +
-                  </Button>
-                </div>
-                <Text size="md" className="py-5 text-right">
-                  Price : ${(price * quantity).toFixed(2)}
-                </Text>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 flex flex-col items-end">
-            <Text size="lg" color="darkestBlue" className="mb-2 mr-4">
-              Total Price :{' '}
-              {new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-              }).format(totalPrice)}
-            </Text>
-
-            <Button
-              onClick={handlePurchase}
-              color="uclaBlue"
-              className="rounded-full"
-            >
-              Proceed to checkout
-            </Button>
-          </div>
-        </>
-      )}
+      <Text size="large" weight="bold">
+        Likes ({count})
+      </Text>
+      <div className="like-list">
+        {likes.length > 0 ? (
+          likes.map((like) => (
+            <LikeItem
+              key={like.id}
+              productId={like.productId}
+              quantity={like.quantity}
+              onQuantityChange={handleQuantityChange}
+            />
+          ))
+        ) : (
+          <Text>No likes found.</Text>
+        )}
+      </div>
+      <div className="total-price">
+        <Text>Total Price: ${totalPrice.toFixed(2)}</Text>
+      </div>
+      <Button onClick={handlePurchase}>Purchase</Button>
     </div>
   );
 }
-
-

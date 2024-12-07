@@ -1,5 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { Pool } from 'pg';
+import type { AdminRole, AdminAuthResponse } from '@/types/admin';
 
 const pool = new Pool({
   user: 'postgres',     
@@ -12,52 +12,49 @@ const pool = new Pool({
 export async function checkAdminAuth(
   userId: string,
   shopId?: string
-): Promise<{ 
-  isAuthorized: boolean;
-  role?: 'STORE_ADMIN' | 'WEB_ADMIN';
-  authorizedStores?: string[];
-}> {
-
-  //get user role
-  const userResult = await pool.query(
-    'SELECT role FROM users WHERE id = $1',
-    [userId]
-  );
-
-  if (userResult.rows.length === 0 || userResult.rows[0].role === 'REGULAR') {
-    return { isAuthorized: false };
-  }
-
-  const role = userResult.rows[0].role;
-
-  //web admins do it all (can change all stores)
-  if (role === 'WEB_ADMIN') {
-    return { isAuthorized: true, role: 'WEB_ADMIN' };
-  }
-
-  //store admins can only change certain stors
-  if (role === 'STORE_ADMIN') {
-    const storeResult = await pool.query(
-      'SELECT shop_id FROM store_permissions WHERE user_id = $1',
+): Promise<AdminAuthResponse> {
+  try {
+    const userResult = await pool.query<{ role: AdminRole }>(
+      'SELECT role FROM users WHERE id = $1',
       [userId]
     );
-    
-    const authorizedStores = storeResult.rows.map(row => row.shop_id);
-    //check permission on this store
-    if (shopId) {
+
+    if (userResult.rows.length === 0 || userResult.rows[0].role === 'REGULAR') {
+      return { isAuthorized: false };
+    }
+
+    const role = userResult.rows[0].role;
+
+    if (role === 'WEB_ADMIN') {
+      return { isAuthorized: true, role: 'WEB_ADMIN' };
+    }
+
+    if (role === 'STORE_ADMIN') {
+      const storeResult = await pool.query(
+        'SELECT shop_id FROM store_permissions WHERE user_id = $1',
+        [userId]
+      );
+      
+      const authorizedStores = storeResult.rows.map(row => row.shop_id);
+
+      if (shopId) {
+        return {
+          isAuthorized: authorizedStores.includes(shopId),
+          role: 'STORE_ADMIN',
+          authorizedStores
+        };
+      }
+
       return {
-        isAuthorized: authorizedStores.includes(shopId),
+        isAuthorized: true,
         role: 'STORE_ADMIN',
         authorizedStores
       };
     }
 
-    return {
-      isAuthorized: true,
-      role: 'STORE_ADMIN',
-      authorizedStores
-    };
+    return { isAuthorized: false };
+  } catch (error) {
+    console.error('Error checking admin auth:', error);
+    return { isAuthorized: false };
   }
-
-  return { isAuthorized: false };
 }
