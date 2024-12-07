@@ -43,7 +43,8 @@ export type Review = {
     createdAt: string;
 };
 
-//like
+
+//like or carted
 export type Like = {
     id: string;
     productId: string;
@@ -59,3 +60,4 @@ export type User = {
     profileImageUrl: string | null;
     createdAt: string;
 };
+
