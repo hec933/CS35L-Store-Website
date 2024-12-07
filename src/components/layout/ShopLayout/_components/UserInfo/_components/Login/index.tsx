@@ -46,21 +46,31 @@ export default function Login() {
       await fetchUserData(token)
 
       setLoggedIn(true)
-      router.push('/') // Redirect to home after login
-    } catch (error) {
-      alert('Login failed. Please check your credentials and try again.')
+      router.push('/')
+    } catch (error) {//don't assume logged in
+      console.error('Login failed:', error)
+      alert('Login failed. Please try again.')
     }
   }
 
   const fetchUserData = async (token: string) => {
-    const response = await fetch('/api/user', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    })
-    const data = await response.json()
-    console.log('Local user data is:', data)
+    try {
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data')
+      }
+
+      const data = await response.json()
+      console.log('Local user data is:', data)
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+    }
   }
 
   const handleLogout = () => {
