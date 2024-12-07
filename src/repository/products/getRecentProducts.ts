@@ -1,6 +1,8 @@
 import { Product } from '@/types'
 import { getAuthToken } from '@/utils/auth'
 import { getRecentItemIds } from '@/utils/localstorage'
+import { getRecentKeywords } from '@/utils/localstorage'
+
 
 //get the product data for user recents products viewed
 export async function getRecentProducts(): Promise<{ 
