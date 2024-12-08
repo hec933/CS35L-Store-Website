@@ -10,14 +10,21 @@ import { Shop } from '@/types'
 
 dayjs.extend(relativeTime).locale('en')
 
-export default function ReviewItem({ contents, createdAt, createdBy }: { contents: string, createdBy: string, createdAt: string }) {
+export default function ReviewItem({ contents, createdAt, createdBy }: { 
+    contents: string, 
+    createdBy: string, 
+    createdAt: string 
+}) {
     const [reviewer, setReviewer] = useState<Shop | null>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         ;(async () => {
             try {
-                const { data } = await fetchWithAuthToken(`/api/shops/${createdBy}`, 'GET')
+                const { data } = await fetchWithAuthToken('/api/shops', 'POST', {
+                    action: 'fetch',
+                    shopId: createdBy
+                })
                 setReviewer(data)
             } catch {
                 console.error('Failed to fetch shop data')
