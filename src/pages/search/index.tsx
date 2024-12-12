@@ -1,15 +1,27 @@
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-
 import Pagination from '@/components/common/Pagination';
 import Product from '@/components/common/Product';
 import Text from '@/components/common/Text';
 import Container from '@/components/layout/Container';
 import Wrapper from '@/components/layout/Wrapper';
-import { getProducts } from '@/repository/products'; // Unified function for all types of search
+import { fetchWithAuthToken } from '@/utils/auth';
 import { Product as TProduct } from '@/types';
 
+async function getProducts(params: {
+  productId?: string;
+  keyword?: string;
+  tag?: string;
+  fromPage?: string;
+  toPage?: string;
+}): Promise<{data: TProduct[] | string[]}> {
+  const response = await fetchWithAuthToken('/api/products', 'POST', params);
+  if (!response || !response.data) {
+    throw new Error('Failed to fetch products');
+  }
+  return response;
+}
 
 export const getServerSideProps: GetServerSideProps<{
   products: TProduct[];
@@ -17,22 +29,35 @@ export const getServerSideProps: GetServerSideProps<{
   count: number;
 }> = async (context) => {
   const { keyword, tag, name } = context.query;
-
   const queryType = keyword ? 'keyword' : tag ? 'tag' : name ? 'name' : null;
-
+  
   if (!queryType) {
     return { props: { products: [], query: '', count: 0 } };
   }
 
   try {
-    const queryValue = keyword || tag || name;
-    const [{ data: products }, { data: count }] = await Promise.all([
-      getProducts({ query: queryValue as string, fromPage: 0, toPage: 1 }),
-      getProducts({ query: queryValue as string, countOnly: true }),
-    ]);
+    const rawQuery = keyword || tag || name || '';
+    const queryValue = Array.isArray(rawQuery) ? rawQuery[0] : rawQuery;
+    
+    const searchParams = queryType === 'tag' 
+      ? { tag: queryValue }
+      : { keyword: queryValue };
+
+    const { data: ids } = await getProducts({
+      ...searchParams
+    });
+
+    const { data: products } = await getProducts({
+      fromPage: '0',
+      toPage: '1'
+    });
 
     return {
-      props: { products, query: queryValue, count },
+      props: {
+        products: products as TProduct[],
+        query: queryValue,
+        count: ids.length
+      },
     };
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -40,7 +65,6 @@ export const getServerSideProps: GetServerSideProps<{
   }
 };
 
-//query back end
 const Search = ({
   products: initialProducts,
   query,
@@ -54,19 +78,26 @@ const Search = ({
   }, [initialProducts]);
 
   useEffect(() => {
-    (async () => {
+    const fetchProducts = async () => {
       try {
+        const searchParams = query.startsWith('#') 
+          ? { tag: query.slice(1) }
+          : { keyword: query };
+
+        await getProducts(searchParams);
+
         const { data: fetchedProducts } = await getProducts({
-          query,
-          fromPage: currentPage - 1,
-          toPage: currentPage,
+          fromPage: String(currentPage - 1),
+          toPage: String(currentPage)
         });
 
-        setProducts(fetchedProducts);
+        setProducts(fetchedProducts as TProduct[]);
       } catch (error) {
         console.error('Error fetching products:', error);
       }
-    })();
+    };
+
+    fetchProducts();
   }, [currentPage, query]);
 
   return (
@@ -109,3 +140,4 @@ const Search = ({
 };
 
 export default Search;
+

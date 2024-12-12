@@ -27,6 +27,15 @@ export type Product = {
   tags: string[];
   createdAt: string;
   createdBy: string;
+  purchaseBy: string | null;
+};
+
+export type Like = {
+  id: string;
+  productId: string;
+  userId: string;
+  quantity: number;
+  createdAt: string;
 };
 
 export type Review = {
@@ -51,17 +60,14 @@ export type StorePermission = {
   createdAt: string;
 };
 
-//from admin portal
 export type AdminAuthResponse = {
   isAuthorized: boolean;
   role?: AdminRole;
   authorizedStores?: string[];
 };
 
-//typed response for internal api use
 export type AdminApiResponse<T> = {
   success: boolean;
   data?: T;
   error?: string;
 };
-
