@@ -22,7 +22,6 @@ const pool = new Pool({
   database: 'handy',
 });
 
-//api for getting products from the backend sql
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { productId, keyword, tag, fromPage = '0', toPage = '1', action } = req.body;
@@ -44,6 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           p.tags,
           p.created_at AS "createdAt",
           p.created_by AS "createdBy",
+          p.purchase_by AS "purchaseBy",
           s.name AS "shopName"
          FROM products p
          LEFT JOIN shops s ON s.id = p.shop_id
@@ -69,6 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           p.tags,
           p.created_at AS "createdAt",
           p.created_by AS "createdBy",
+          p.purchase_by AS "purchaseBy",
           s.name AS "shopName"
          FROM products p
          LEFT JOIN shops s ON s.id = p.shop_id

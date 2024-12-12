@@ -8,27 +8,50 @@ import { getShopLikes } from '@/repository/shops/getShopLikes';
 import { getAuthToken } from '@/utils/auth';
 
 export const getServerSideProps = async (context) => {
- const shopId = context.query.shopId as string;
- let token: string | null = null;
- try {
-   token = await getAuthToken(context.req, context.res);
- } catch {
-   // user is not authed
- }
- if (!token) {
-   // user is not authed
-   const { data: shop } = await getShop(shopId);
-   const { data: productCount } = await getShopProductCount(shopId);
-   return {
-     props: {
-       shop,
-       productCount,
-       likeCount: 0,
-       likes: [],
-     },
-   };
- }
- // user is authed
+  const shopId = context.query.shopId as string;
+  let token: string | null = null;
+
+  try {
+    token = await getAuthToken(context.req, context.res);
+  } catch {}
+
+  if (!token) {
+    const { shop, productCount } = await getShop({
+      shopId,
+      includeProductCount: true,
+    });
+
+    return {
+      props: {
+        shop,
+        productCount,
+        likeCount: 0,
+        likes: [],
+        followerCount: 0,
+      },
+    };
+  }
+
+  const { shop, productCount, likes, followerCount } = await getShop({
+    shopId,
+    includeProductCount: true,
+    includeLikes: true,
+    includeFollowerCount: true,
+    likeOptions: { fromPage: 0, toPage: 1 },
+  });
+
+  return {
+    props: {
+      shop,
+      productCount,
+      likeCount: likes?.count || 0,
+      likes: likes?.list || [],
+      followerCount: followerCount || 0,
+    },
+  };
+};
+
+// user is authed
  const [
    { data: shop },
    { data: productCount },
