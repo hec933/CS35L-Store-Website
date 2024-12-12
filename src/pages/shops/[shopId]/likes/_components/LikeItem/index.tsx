@@ -6,16 +6,17 @@ import { Product as TProduct } from '@/types';
 
 type Props = {
   productId: string;
+  quantity: number;
+  onQuantityChange: (id: string, delta: number) => void;
 };
 
-//get item details and render it
-export default function LikeItem({ productId }: Props) {
+export default function LikeItem({ productId, quantity, onQuantityChange }: Props) {
   const [product, setProduct] = useState<TProduct>();
 
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await getProducts({ productId: productId });
+        const { data } = await getProducts({ productId });
         setProduct(data);
       } catch (error) {
         console.error('Error fetching product:', error);

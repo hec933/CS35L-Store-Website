@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { fetchWithAuthToken } from '@/utils/auth';
 import LikeItem from '../LikeItem';
 import Text from '@/components/common/Text';
 import Button from '@/components/common/Button';
-import { getProducts } from '@/repository/products'; // Fetch product IDs
-import { Like } from '@/types';
+import { getProducts } from '@/repository/products';
+import { Like, Product } from '@/types';
 
 type Props = {
   initialLikes: Like[];
@@ -11,24 +12,26 @@ type Props = {
   shopId: string;
 };
 
+type LikeWithProduct = Like & {
+  product?: Product;
+};
 
-//this is the front end cart
 export default function LikeList({ initialLikes, count, shopId }: Props) {
-  const [likes, setLikes] = useState(
-    (initialLikes || []).map((item) => ({ ...item, quantity: 1 }))
-  );
+  const [likes, setLikes] = useState<LikeWithProduct[]>(initialLikes || []);
   const [totalPrice, setTotalPrice] = useState<number>(0);
 
-  //get products from the list and map them
   useEffect(() => {
     (async () => {
       try {
         const { data } = await getProducts({ tag: shopId });
         if (Array.isArray(data)) {
           setLikes(
-            data.map((id) => ({
-              id: id.id, // Map only product IDs
+            data.map(id => ({
+              id: crypto.randomUUID(),
+              productId: id,
+              userId: '',
               quantity: 1,
+              createdAt: new Date().toISOString()
             }))
           );
         } else {
@@ -41,16 +44,16 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
     })();
   }, [shopId]);
 
-  //update price display on additions to likes
   useEffect(() => {
-    const priceSum = likes.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const priceSum = likes.reduce((sum, item) => 
+      sum + (item.product?.price || 0) * item.quantity, 0);
     setTotalPrice(priceSum);
   }, [likes]);
 
-  const handleQuantityChange = (id: string, delta: number) => {
+  const handleQuantityChange = (productId: string, delta: number) => {
     setLikes((prevLikes) =>
       prevLikes.map((item) => {
-        if (item.id === id) {
+        if (item.productId === productId) {
           const updatedQuantity = Math.max(1, item.quantity + delta);
           return { ...item, quantity: updatedQuantity };
         }
@@ -59,7 +62,6 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
     );
   };
 
-  //TODO
   const handlePurchase = async () => {
     try {
       await fetchWithAuthToken('/api/cart', 'POST', {
@@ -75,7 +77,7 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
 
   return (
     <div>
-      <Text size="large" weight="bold">
+      <Text size="lg" weight="bold">
         Likes ({count})
       </Text>
       <div className="like-list">
@@ -83,7 +85,7 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
           likes.map((like) => (
             <LikeItem
               key={like.id}
-              productId={like.id}
+              productId={like.productId}
               quantity={like.quantity}
               onQuantityChange={handleQuantityChange}
             />
@@ -99,4 +101,3 @@ export default function LikeList({ initialLikes, count, shopId }: Props) {
     </div>
   );
 }
-

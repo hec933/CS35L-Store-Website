@@ -1,46 +1,58 @@
-import { Shop, Product } from '@/types';
 import { fetchWithAuthToken } from '@/utils/auth';
+import { Shop, Like } from '@/types';
 
-
-export async function getShop(shopId: string): Promise<{ data: Shop }> {
-  return fetchWithAuthToken(
-    `/api/shops`, 
-    'POST', 
-    { id: shopId }
-  );
-}
-
-export async function getShopFollowerCount(shopId: string): Promise<{ data: number }> {
-  const response = await fetchWithAuthToken(
-    `/api/shops/${shopId}/followers/count`, 
-    'POST'
-  );
-  return { data: response.data.total };
-}
-
-export async function getShopProductCount(shopId: string): Promise<{ data: number }> {
-  const response = await fetchWithAuthToken(
-    `/api/shops/${shopId}/products/count`, 
-    'POST'
-  );
-  return { data: response.data.total };
-}
-
-export async function getShopProducts({
+export const getShop = async ({
   shopId,
-  fromPage = 0,
-  toPage = 1,
+  includeProductCount = false,
+  includeLikes = false,
+  includeFollowerCount = false,
+  likeOptions,
 }: {
   shopId: string;
-  fromPage?: number;
-  toPage?: number;
-}): Promise<{ data: Product[] }> {
-  return fetchWithAuthToken(
-    `/api/shops/${shopId}/products`, 
-    'POST', 
-    { fromPage, toPage }
-  );
-}
+  includeProductCount?: boolean;
+  includeLikes?: boolean;
+  includeFollowerCount?: boolean;
+  likeOptions?: {
+    fromPage?: number;
+    toPage?: number;
+    countOnly?: boolean;
+  };
+}) => {
+  const promises: Array<Promise<any>> = [
+    fetchWithAuthToken(`/api/shops/${shopId}`, { method: 'POST' }),
+  ];
 
+  if (includeProductCount) {
+    promises.push(
+      fetchWithAuthToken(`/api/shops/${shopId}/products/count`, {
+        method: 'POST',
+      })
+    );
+  }
 
+  if (includeLikes && likeOptions) {
+    const likeUrl = likeOptions.countOnly
+      ? `/api/shops/${shopId}/likes/count`
+      : `/api/shops/${shopId}/likes`;
 
+    const likeOptionsBody = likeOptions.countOnly
+      ? undefined
+      : { fromPage: likeOptions.fromPage, toPage: likeOptions.toPage };
+
+    promises.push(
+      fetchWithAuthToken(likeUrl, {
+        method: 'POST',
+        ...(likeOptionsBody && { body: JSON.stringify(likeOptionsBody) }),
+      })
+    );
+  }
+
+  if (includeFollowerCount) {
+    promises.push(
+      fetchWithAuthToken(`/api/shops/${shopId}/followers/count`, {
+        method: 'POST',
+      })
+    );
+  }
+
+  const
