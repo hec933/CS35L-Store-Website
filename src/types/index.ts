@@ -30,6 +30,14 @@ export type Product = {
   purchaseBy: string | null;
 };
 
+export type Like = {
+  id: string;
+  productId: string;
+  userId: string;
+  quantity: number;
+  createdAt: string;
+};
+
 export type Review = {
   id: string;
   shopId: string;
