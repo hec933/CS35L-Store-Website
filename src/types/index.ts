@@ -43,15 +43,17 @@ export type StorePermission = {
   createdAt: string;
 };
 
-// API Response types
+//from admin portal
 export type AdminAuthResponse = {
   isAuthorized: boolean;
   role?: AdminRole;
   authorizedStores?: string[];
 };
 
+//typed response for internal api use
 export type AdminApiResponse<T> = {
   success: boolean;
   data?: T;
   error?: string;
 };
+
