@@ -1,55 +1,45 @@
 import { useEffect, useState } from 'react';
-import { AdminPortal } from '@/utils/adminPortal';
-import { RequestAccess } from '@/utils/requestAccess';
+import { fetchWithAuth } from '@/utils/auth';
 import Container from '@/components/layout/Container';
 import Wrapper from '@/components/layout/Wrapper';
+import { AdminPortal } from '@/utils/adminPortal';
+import { RequestAccess } from '@/utils/requestAccess';
 
-declare const auth: any;
-
+//admin login page
 export default function AdminPage() {
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+    const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    async function checkAdmin() {
-      try {
-        const user = auth.currentUser;
-        if (!user) {
-          setIsAdmin(false);
-          return;
+    useEffect(() => {
+        async function checkAdmin() {
+            try {
+                const { role } = await fetchWithAuth('/api/user', 'POST');
+                setIsAdmin(role === 'WEB_ADMIN' || role === 'STORE_ADMIN');
+            } catch (error) {
+                console.error('Error checking admin status:', error);
+                setIsAdmin(false);
+            }
         }
 
-        const token = await user.getIdToken();
-        const response = await fetch('/api/user', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        checkAdmin();
+    }, []);
 
-        if (response.ok) {
-          const userData = await response.json();
-          setIsAdmin(userData.role === 'WEB_ADMIN' || userData.role === 'STORE_ADMIN');
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-      }
+    if (isAdmin === null) {
+        return (
+            <Wrapper>
+                <Container>
+                    <div className="flex justify-center items-center h-screen">
+                        <span>Loading...</span>
+                    </div>
+                </Container>
+            </Wrapper>
+        );
     }
 
-    checkAdmin();
-  }, []);
-
-  if (isAdmin === null) {
-    return <div>Loading...</div>;
-  }
-
-  return (
-    <Wrapper>
-      <Container>
-        {isAdmin ? <AdminPortal /> : <RequestAccess />}
-      </Container>
-    </Wrapper>
-  );
+    return (
+        <Wrapper>
+            <Container>
+                {isAdmin ? <AdminPortal /> : <RequestAccess />}
+            </Container>
+        </Wrapper>
+    );
 }
