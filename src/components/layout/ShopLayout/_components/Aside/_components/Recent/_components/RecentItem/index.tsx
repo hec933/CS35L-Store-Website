@@ -14,6 +14,11 @@ type Props = {
 export default function RecentItem({ id, title, price, imageUrl }: Props) {
     const [isHover, setIsHover] = useState(false);
 
+    const handleRemoveRecent = (e: React.MouseEvent) => {
+        e.preventDefault();
+        removeRecentItemId(id);
+    };
+
     return (
         <div
             onMouseEnter={() => setIsHover(true)}
@@ -36,10 +41,7 @@ export default function RecentItem({ id, title, price, imageUrl }: Props) {
                                 <button
                                     className="absolute bg-uclaBlue flex justify-center items-center text-white cursor-pointer"
                                     style={{ width: 20, height: 20, left: -20 }}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        removeRecentItemId(id);
-                                    }}
+                                    onClick={handleRemoveRecent}
                                 >
                                     <span
                                         className="material-symbols-outlined"
@@ -52,7 +54,7 @@ export default function RecentItem({ id, title, price, imageUrl }: Props) {
                                     <Text size="xs" className="truncate">
                                         {title}
                                     </Text>
-                                    <Text size="sm">{price.toFixed(2)} $ </Text>
+                                    <Text size="sm">{price.toFixed(2)} $</Text>
                                 </div>
                                 <div className="w-16 h-16 shrink-0 border-t border-b border-r border-uclaBlue relative">
                                     <Image
