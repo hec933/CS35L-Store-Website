@@ -9,17 +9,13 @@ import Wrapper from '@/components/layout/Wrapper';
 import { fetchWithAuthToken } from '@/utils/auth';
 import { Product as TProduct } from '@/types';
 
-interface ProductsResponse {
-  data: TProduct[];
-}
-
 async function getProducts(params: {
   productId?: string;
   keyword?: string;
   tag?: string;
   fromPage?: string;
   toPage?: string;
-}): Promise<ProductsResponse> {
+}): Promise<{data: TProduct[] | string[]}> {
   const response = await fetchWithAuthToken('/api/products', 'POST', params);
   if (!response || !response.data) {
     throw new Error('Failed to fetch products');
@@ -40,22 +36,27 @@ export const getServerSideProps: GetServerSideProps<{
   }
 
   try {
-    const queryValue = Array.isArray(keyword || tag || name) ? (keyword || tag || name)[0] : (keyword || tag || name || '');
+    const rawQuery = keyword || tag || name || '';
+    const queryValue = Array.isArray(rawQuery) ? rawQuery[0] : rawQuery;
+    
     const searchParams = queryType === 'tag' 
       ? { tag: queryValue }
       : { keyword: queryValue };
 
+    const { data: ids } = await getProducts({
+      ...searchParams
+    });
+
     const { data: products } = await getProducts({
-      ...searchParams,
       fromPage: '0',
       toPage: '1'
     });
 
     return {
       props: {
-        products: products ?? [],
+        products: products as TProduct[],
         query: queryValue,
-        count: products?.length ?? 0
+        count: ids.length
       },
     };
   } catch (error) {
@@ -83,12 +84,14 @@ const Search = ({
           ? { tag: query.slice(1) }
           : { keyword: query };
 
+        await getProducts(searchParams);
+
         const { data: fetchedProducts } = await getProducts({
-          ...searchParams,
           fromPage: String(currentPage - 1),
           toPage: String(currentPage)
         });
-        setProducts(fetchedProducts);
+
+        setProducts(fetchedProducts as TProduct[]);
       } catch (error) {
         console.error('Error fetching products:', error);
       }
@@ -137,3 +140,4 @@ const Search = ({
 };
 
 export default Search;
+
