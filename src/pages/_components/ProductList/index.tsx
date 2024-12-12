@@ -22,9 +22,8 @@ export default function ProductList({ initialProducts }: Props) {
       try {
         setIsLoading(true);
         const response = await fetchWithAuthToken('/api/products', 'POST', {
-          action: 'fetch',
-          fromPage,
-          toPage,
+          fromPage: 0,
+          toPage: 2,
         });
 
         const { data }: { data: TProduct[] } = await response.json();
