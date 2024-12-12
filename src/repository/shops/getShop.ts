@@ -1,14 +1,8 @@
 import { fetchWithAuthToken } from '@/utils/auth';
-import { Shop, Like } from '@/types';
+import { Shop } from '@/types';
 
-export const getShop = async ({
-  shopId,
-  includeProductCount = false,
-  includeLikes = false,
-  includeFollowerCount = false,
-  likeOptions,
-}: {
-  shopId: string;
+type Params = {
+  shopId?: string;
   includeProductCount?: boolean;
   includeLikes?: boolean;
   includeFollowerCount?: boolean;
@@ -17,10 +11,36 @@ export const getShop = async ({
     toPage?: number;
     countOnly?: boolean;
   };
-}) => {
+  keyword?: string;
+  fromPage?: number;
+  toPage?: number;
+  countOnly?: boolean;
+};
+
+export const getShop = async ({
+  shopId,
+  includeProductCount = false,
+  includeLikes = false,
+  includeFollowerCount = false,
+  likeOptions,
+  keyword,
+  fromPage = 0,
+  toPage = 1,
+  countOnly = false,
+}: Params): Promise<{ data: Shop[] | number }> => {
+  if (keyword) {
+    const action = countOnly ? 'countByKeyword' : 'fetchByKeyword';
+    return await fetchWithAuthToken('/api/shops', 'POST', {
+      action,
+      keyword,
+      fromPage,
+      toPage,
+    });
+  }
+
   const promises: Array<Promise<any>> = [
-    fetchWithAuthToken(`/api/shops/${shopId}`, 'POST'),
-  ];
+    shopId ? fetchWithAuthToken(`/api/shops/${shopId}`, 'POST') : null,
+  ].filter(Boolean);
 
   if (includeProductCount) {
     promises.push(
@@ -33,12 +53,8 @@ export const getShop = async ({
       ? `/api/shops/${shopId}/likes/count`
       : `/api/shops/${shopId}/likes`;
 
-    const likeOptionsBody = likeOptions.countOnly
-      ? undefined
-      : { fromPage: likeOptions.fromPage, toPage: likeOptions.toPage };
-
     promises.push(
-      fetchWithAuthToken(likeUrl, 'POST', likeOptionsBody)
+      fetchWithAuthToken(likeUrl, 'POST', likeOptions.countOnly ? undefined : likeOptions)
     );
   }
 
@@ -51,12 +67,12 @@ export const getShop = async ({
   const [shop, productCount, likes, followerCount] = await Promise.all(promises);
 
   return {
-    shop: shop as Shop,
+    shop: shopId ? (shop as Shop) : undefined,
     productCount: includeProductCount ? (productCount as number) : undefined,
     likes: includeLikes
       ? {
           count: likeOptions?.countOnly ? (likes as number) : undefined,
-          list: likeOptions?.countOnly ? [] : (likes as Like[]),
+          list: likeOptions?.countOnly ? [] : (likes as Array<any>),
         }
       : undefined,
     followerCount: includeFollowerCount ? (followerCount as number) : undefined,
