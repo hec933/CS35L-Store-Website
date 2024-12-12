@@ -1,5 +1,3 @@
-
-
 {
     "compilerOptions": {
         "target": "es5",
@@ -16,9 +14,10 @@
         "isolatedModules": true,
         "jsx": "preserve",
         "incremental": true,
-        "baseUrl": ".",
+        "baseUrl": "./",
         "paths": {
-            "@/*": ["./src/*"]
+            "@/*": ["./src/*"],
+	    "@/repository/*": ["src/repository/*"]
         },
         "forceConsistentCasingInFileNames": true,
         "plugins": [
