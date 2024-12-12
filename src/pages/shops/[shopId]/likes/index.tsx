@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import LikeList from './_components/LikeList';
 import Text from '@/components/common/Text';
 import { getShop } from '@/repository/shops/getShop';
-import { getShopFollowerCount } from '@/repository/shops/getShopFollowerCount';
-import { getShopProductCount } from '@/repository/shops/getShopProductCount';
-import { getShopLikes } from '@/repository/shops/getShopLikes';
 import { getAuthToken } from '@/utils/auth';
 
 export const getServerSideProps = async (context) => {
@@ -12,7 +9,7 @@ export const getServerSideProps = async (context) => {
   let token: string | null = null;
 
   try {
-    token = await getAuthToken(context.req, context.res);
+    token = await getAuthToken();
   } catch {}
 
   if (!token) {
@@ -51,53 +48,34 @@ export const getServerSideProps = async (context) => {
   };
 };
 
-// user is authed
- const [
-   { data: shop },
-   { data: productCount },
-   { data: likeCount },
-   { data: likes },
- ] = await Promise.all([
-   getShop(shopId),
-   getShopProductCount(shopId),
-   getShopLikeCount(shopId),
-   getShopLikes({ shopId, fromPage: 0, toPage: 1 }),
- ]);
- return {
-   props: {
-     shop,
-     productCount,
-     likeCount,
-     likes,
-   },
- };
-};
-
-export default function CartPage({
- shop,
- productCount,
- likeCount,
- likes: initialLikes,
+export default function LikesPage({
+  shop,
+  productCount,
+  likeCount,
+  likes: initialLikes,
+  followerCount,
 }) {
- return (
-   <div className="my-8 ">
-     <div className="flex flex-col items-center">
-       <div className="mb-5 text-center">
-         <Text size="xl" color="darkestBlue">
-           Shopping Cart :{' '}
-         </Text>
-         <Text size="xl">
-           {likeCount} item{likeCount > 1 ? 's' : ''} in your cart.
-         </Text>
-       </div>
-       <div className="grid gap-4 justify-center items-center">
-         <LikeList
-           initialLikes={initialLikes}
-           count={likeCount}
-           shopId={shop.id}
-         />
-       </div>
-     </div>
-   </div>
- );
+  return (
+    <div className="my-8">
+      <div className="flex flex-col items-center">
+        <div className="mb-5 text-center">
+          <Text size="xl" color="darkestBlue">
+            Shop: {shop.name}
+          </Text>
+          <Text size="lg">Followers: {followerCount}</Text>
+          <Text size="lg">Products: {productCount}</Text>
+          <Text size="lg">
+            {likeCount} like{likeCount > 1 ? 's' : ''}
+          </Text>
+        </div>
+        <div className="grid gap-4 justify-center items-center">
+          <LikeList
+            initialLikes={initialLikes}
+            count={likeCount}
+            shopId={shop.id}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }

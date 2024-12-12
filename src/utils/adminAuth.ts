@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import type { AdminRole, AdminAuthResponse } from '@/types/admin';
+import type { AdminRole, AdminAuthResponse } from '@/types';
 
 const pool = new Pool({
   user: 'postgres',     

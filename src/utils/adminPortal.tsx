@@ -260,7 +260,7 @@ function AdminPortal() {
           ) : (
             <>
               <select
-                class="w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 value={selectedShop}
                 onChange={(e) => setSelectedShop(e.target.value)}
                 disabled={isLoadingShops}

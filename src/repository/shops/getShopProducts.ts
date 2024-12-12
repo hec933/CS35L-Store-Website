@@ -10,8 +10,9 @@ export async function getShopProducts({
   fromPage?: number;
   toPage?: number;
 }): Promise<{ data: Product[] }> {
-  return await fetchWithAuthToken(
-    `/api/products?shopId=${shopId}&fromPage=${fromPage}&toPage=${toPage}`,
-    'GET',
-  );
+  return await fetchWithAuthToken('/api/products', 'POST', {
+    shopId,
+    fromPage,
+    toPage,
+  });
 }
