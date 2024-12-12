@@ -30,17 +30,17 @@ async function verifyAuth(req: NextApiRequest) {
   return await adminAuth.verifyIdToken(token);
 }
 
+//switch on request
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const decodedToken = await verifyAuth(req);
     const userId = decodedToken.uid;
 
-    switch (req.method) {
-      case 'POST': {
-        const { action, productId, quantity } = req.body;
+    if (req.method === 'POST') {
+      const { productId, quantity, action } = req.body;
 
-        if (action === 'fetch') {
-          // Fetch full cart details
+      switch (action) {
+        case 'fetch': {
           const cartItems = await pool.query(
             `SELECT 
               ci.id as cart_item_id,
@@ -59,59 +59,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
              ORDER BY ci.created_at DESC`,
             [userId]
           );
-          
-          return res.json({
-            data: cartItems.rows
-          });
+          return res.json({ data: cartItems.rows });
         }
 
-         if (!productId || !quantity) {
-          return res.status(400).json({ error: 'Product ID and quantity required' });
+        case 'add':
+        case 'update': {
+          if (!productId || !quantity) {
+            return res.status(400).json({ error: 'Product ID and quantity required' });
+          }
+
+          if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity < 1) {
+            return res.status(400).json({ error: 'Invalid quantity' });
+          }
+
+          await pool.query(
+            `INSERT INTO cart_items (id, user_id, product_id, quantity, created_at)
+             VALUES (gen_random_uuid(), $1, $2, $3, NOW())
+             ON CONFLICT (user_id, product_id) DO UPDATE 
+             SET quantity = EXCLUDED.quantity`,
+            [userId, productId, quantity]
+          );
+
+          return res.json({ message: 'Cart updated successfully' });
         }
 
-        if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity < 1) {
-          return res.status(400).json({ error: 'Invalid quantity' });
+        case 'remove': {
+          if (!productId) {
+            return res.status(400).json({ error: 'Product ID required' });
+          }
+
+          await pool.query(
+            'DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2',
+            [userId, productId]
+          );
+
+          return res.json({ message: 'Item removed from cart' });
         }
 
-        await pool.query(
-          `INSERT INTO cart_items (id, user_id, product_id, quantity, created_at)
-           VALUES (gen_random_uuid(), $1, $2, $3, NOW())
-           ON CONFLICT (user_id, product_id) DO UPDATE 
-           SET quantity = EXCLUDED.quantity`,
-          [userId, productId, quantity]
-        );
-
-        await updateMostLiked();
-
-        return res.json({ message: 'Cart updated successfully' });
+        default:
+          return res.status(400).json({ error: 'Invalid action' });
       }
-
-      case 'DELETE': {
-        const { productId } = req.query;
-        if (!productId) {
-          return res.status(400).json({ error: 'Product ID required' });
-        }
-
-        await pool.query(
-          'DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2',
-          [userId, productId]
-        );
-
-        await updateMostLiked();
-
-        return res.json({ message: 'Item removed from cart' });
-      }
-
-      default:
-        res.setHeader('Allow', ['POST', 'DELETE']);
-        return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
+
+    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   } catch (error) {
     console.error('Error in cart handler:', error);
     return res.status(500).json({ error: 'Failed to process request' });
   }
 }
 
+//update metadata
 async function updateMostLiked() {
   const result = await pool.query(
     `SELECT 

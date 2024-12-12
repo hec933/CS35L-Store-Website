@@ -10,29 +10,30 @@ import { Shop } from '@/types'
 
 dayjs.extend(relativeTime).locale('en')
 
+//render a review
 export default function ReviewItem({ contents, createdAt, createdBy }: { 
     contents: string, 
-    createdBy: string, 
-    createdAt: string 
+    createdAt: string, 
+    createdBy: string 
 }) {
-    const [reviewer, setReviewer] = useState<Shop | null>(null)
-    const [loading, setLoading] = useState(true)
+    const [reviewer, setReviewer] = useState<{ name: string; image_url?: string } | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        ;(async () => {
+        (async () => {
             try {
-                const { data } = await fetchWithAuthToken('/api/shops', 'POST', {
+                const { data } = await fetchWithAuthToken('/api/reviews', 'POST', {
                     action: 'fetch',
-                    shopId: createdBy
-                })
-                setReviewer(data)
+                    shopId: createdBy,
+                });
+                setReviewer(data);
             } catch {
-                console.error('Failed to fetch shop data')
+                console.error('Failed to fetch reviewer data');
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
-        })()
-    }, [createdBy])
+        })();
+    }, [createdBy]);
 
     if (loading) {
         return (
@@ -41,7 +42,7 @@ export default function ReviewItem({ contents, createdAt, createdBy }: {
                     <Spinner />
                 </div>
             </div>
-        )
+        );
     }
 
     if (!reviewer) {
@@ -49,29 +50,21 @@ export default function ReviewItem({ contents, createdAt, createdBy }: {
             <div className="flex my-2 py-2">
                 <Text color="red" size="sm">Failed to load reviewer details.</Text>
             </div>
-        )
+        );
     }
 
     return (
         <div className="flex my-2 py-2">
-            <ShopProfileImage imageUrl={reviewer.imageUrl || undefined} />
+            <ShopProfileImage imageUrl={reviewer.image_url} />
             <div className="ml-4 border-b border-lightestBlue pb-2 flex-1 w-0">
                 <div className="flex justify-between">
-                    <div className="truncate pr-1">
-                        <Text color="black" size="sm">
-                            {reviewer.name}
-                        </Text>
-                    </div>
-                    <div className="shrink-0">
-                        <Text color="uclaBlue" size="sm">
-                            {dayjs(createdAt).fromNow()}
-                        </Text>
-                    </div>
+                    <Text color="black" size="sm">{reviewer.name}</Text>
+                    <Text color="uclaBlue" size="sm">{dayjs(createdAt).fromNow()}</Text>
                 </div>
                 <div className="py-2">
                     {contents}
                 </div>
             </div>
         </div>
-    )
+    );
 }

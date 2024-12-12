@@ -8,32 +8,57 @@ import { getProducts } from '@/repository/products/getProducts';
 import Text from '@/components/common/Text';  
 import LoginPannel from '@/components/shared/LoginPannel';
 import { getAuthToken } from '@/utils/auth';
+import { getAuth } from 'firebase/auth';
 
 export const getServerSideProps = async () => {
-   const { data } = await getProducts({ 
-       action: 'fetch',
-       fromPage: 0, 
-       toPage: 2 
-   });
-   return { props: { products: data } };
+   try {
+       const { data } = await getProducts({ 
+           action: 'fetch',
+           fromPage: 0, 
+           toPage: 2 
+       });
+       return { props: { products: data } };
+   } catch (error) {
+       console.error('Error fetching products in getServerSideProps:', error);
+       return { props: { products: [] } }; // Fallback to an empty list on failure
+   }
 };
 
+
+//main entry point for store
 export default function Home({
    products,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
    const [loggedIn, setLoggedIn] = useState(false);
    const [showLoginModal, setShowLoginModal] = useState(false);
+   const [isLoading, setIsLoading] = useState(false);
 
    useEffect(() => {
        const verifyToken = async () => {
            try {
+               setIsLoading(true);
                const token = await getAuthToken();
                setLoggedIn(!!token);
            } catch {
                setLoggedIn(false);
+           } finally {
+               setIsLoading(false);
            }
        };
+
+       const refreshToken = async () => {
+           const auth = getAuth();
+           const user = auth.currentUser;
+           if (user) {
+               const token = await user.getIdToken(true);
+               localStorage.setItem('authToken', token);
+           }
+       };
+
+       const interval = setInterval(refreshToken, 50 * 60 * 1000);
        verifyToken();
+
+       return () => clearInterval(interval); // Cleanup on component unmount
    }, []);
 
    const handleLogin = async () => {
@@ -53,6 +78,18 @@ export default function Home({
        localStorage.removeItem('loggedIn');
        setLoggedIn(false);
    };
+
+   if (isLoading) {
+       return (
+           <Wrapper>
+               <Container>
+                   <div className="flex justify-center items-center h-screen">
+                       <Text size="lg" color="uclaBlue">Loading...</Text>
+                   </div>
+               </Container>
+           </Wrapper>
+       );
+   }
 
    return (
        <Wrapper>
