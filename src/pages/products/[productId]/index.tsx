@@ -14,7 +14,7 @@ import Container from '@/components/layout/Container';
 import Wrapper from '@/components/layout/Wrapper';
 import ReviewItem from './_components/ReviewItem';
 import { fetchWithAuthToken } from '@/utils/auth';
-import { Review, Product as TProduct, Shop as TShop } from '@/types';
+import { Product as TProduct, Shop as TShop } from '@/types';
 import { addRecentItemId } from '@/utils/localstorage';
 
 dayjs.extend(relativeTime).locale('en');
@@ -25,7 +25,7 @@ export const getServerSideProps: GetServerSideProps<{
   productCount: number;
   followerCount: number;
   shopProducts: TProduct[];
-  reviews: Review[];
+  reviews: { id: string; content: string; userName: string; createdAt: string }[];
   reviewCount: number;
 }> = async (context) => {
   const productId = context.query.productId as string;
@@ -55,14 +55,17 @@ export const getServerSideProps: GetServerSideProps<{
       productCount,
       followerCount,
       shopProducts,
-      reviews,
+      reviews: reviews.map((r: any) => ({
+        id: r.id,
+        content: r.content,
+        userName: r.user_name,
+        createdAt: r.created_at,
+      })),
       reviewCount,
     },
   };
 };
 
-
-//detail page of one product
 export default function ProductDetail({
   product,
   shop,
@@ -136,11 +139,11 @@ export default function ProductDetail({
 
         <div className="mt-6">
           <Text size="xl" weight="bold">Product Reviews ({reviewCount})</Text>
-          {reviews.map(({ id, contents, createdBy, createdAt }) => (
+          {reviews.map(({ id, content, userName, createdAt }) => (
             <ReviewItem
               key={id}
-              contents={contents}
-              createdBy={createdBy}
+              contents={content}
+              createdBy={userName}
               createdAt={createdAt}
             />
           ))}
