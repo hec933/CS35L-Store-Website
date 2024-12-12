@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { Pool } from 'pg';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { Shop } from '@types';
 
 if (!getApps().length) {
   initializeApp({
@@ -38,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     switch (req.method) {
       case 'POST': {
         const { fromPage = '0', toPage = '1', shopId, keyword } = req.body;
-        let query = 'SELECT * FROM shops WHERE 1=1';
+        let query = 'SELECT id, name, image_url, introduce, created_at FROM shops WHERE 1=1';
         const params: any[] = [];
         let paramCount = 1;
 
@@ -55,14 +56,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const pageSize = 10;
-        const offset = parseInt(fromPage as string) * pageSize;
-        const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
+        const offset = parseInt(fromPage) * pageSize;
+        const limit = (parseInt(toPage) - parseInt(fromPage)) * pageSize;
 
         query += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
         params.push(limit, offset);
 
         const result = await pool.query(query, params);
-        return res.json({ data: result.rows });
+        return res.json({ 
+          data: result.rows.map(row => ({
+            id: row.id,
+            name: row.name,
+            imageUrl: row.image_url,
+            introduce: row.introduce,
+            createdAt: row.created_at
+          }))
+        });
       }
 
       case 'DELETE': {

@@ -1,6 +1,6 @@
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next';
-import { useEffect, useState } from 'react';
-import SearchShopItem from './_components/SearchShopItem';
+import Link from 'next/link';
+import { useEffect, useState } from 'react'; 
 import Pagination from '@/components/common/Pagination';
 import Text from '@/components/common/Text';
 import Container from '@/components/layout/Container';
@@ -8,41 +8,60 @@ import Wrapper from '@/components/layout/Wrapper';
 import { fetchWithAuthToken } from '@/utils/auth';
 import { Shop } from '@/types';
 
+interface ShopsResponse {
+  data: Shop[];
+}
+
+async function getShops(params: {
+  keyword?: string;
+  fromPage?: string;
+  toPage?: string;
+  shopId?: string;
+}): Promise<ShopsResponse> {
+  const response = await fetchWithAuthToken('/api/shops', 'POST', params);
+  if (!response || !response.data) {
+    throw new Error('Failed to fetch shops');
+  }
+  return response;
+}
 
 export const getServerSideProps: GetServerSideProps<{
   shops: Shop[];
   query: string;
   count: number;
 }> = async (context) => {
-  const { query: keyword } = context.query;
-
+  const keyword = context.query.keyword;
+  
   if (!keyword) {
     return { props: { shops: [], query: '', count: 0 } };
   }
 
   try {
-    const { data: shops } = await fetchWithAuthToken('/api/shops', 'POST', {
-      keyword,
-      fromPage: 0,
-      toPage: 1,
+    const queryValue = Array.isArray(keyword) ? keyword[0] : keyword;
+    const { data: shops } = await getShops({
+      keyword: queryValue,
+      fromPage: '0',
+      toPage: '1'
     });
 
-    // Count is assumed from the shops length; backend can support a count-only request if necessary
-    const count = shops.length;
-
-    return { props: { shops, query: keyword, count } };
+    return {
+      props: {
+        shops: shops ?? [],
+        query: queryValue,
+        count: shops?.length ?? 0
+      },
+    };
   } catch (error) {
-    console.error('Error fetching shop data:', error);
+    console.error('Error fetching shops:', error);
     return { props: { shops: [], query: '', count: 0 } };
   }
 };
 
-//search for shops
-export default function SearchShop({
+const ShopSearch = ({
   shops: initialShops,
   query,
   count,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+}: InferGetServerSidePropsType<typeof getServerSideProps>) => {
   const [shops, setShops] = useState<Shop[]>(initialShops);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -53,16 +72,14 @@ export default function SearchShop({
   useEffect(() => {
     const fetchShops = async () => {
       try {
-        const { data: fetchedShops } = await fetchWithAuthToken('/api/shops', 'POST', {
+        const { data: fetchedShops } = await getShops({
           keyword: query,
-          fromPage: currentPage - 1,
-          toPage: currentPage,
+          fromPage: String(currentPage - 1),
+          toPage: String(currentPage)
         });
-
         setShops(fetchedShops);
       } catch (error) {
         console.error('Error fetching shops:', error);
-        setShops([]);
       }
     };
 
@@ -72,23 +89,24 @@ export default function SearchShop({
   return (
     <Wrapper>
       <Container>
-        <div className="my-7">
-          <Text size="lg">Search Results</Text>
-          <Text size="lg" color="uclaBlue" className="ml-1">
-            {count.toLocaleString()} results
-          </Text>
+        <div className="my-7 text-center">
+          <Text size="lg" color="uclaBlue">{query}</Text>
+          <Text size="lg"> Results</Text>
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-5 gap-4 my-3">
           {shops.length === 0 ? (
-            <Text className="text-uclaBlue">No search results found.</Text>
+            <Text>No search results found.</Text>
           ) : (
-            shops.map(({ id, name, imageUrl }) => (
-              <SearchShopItem
-                key={id}
-                id={id}
-                name={name}
-                profileImageUrl={imageUrl || undefined}
-              />
+            shops.map((shop) => (
+              <Link
+                key={shop.id}
+                className="rounded-lg overflow-hidden border"
+                href={`/shops/${shop.id}`}
+              >
+                <div className="p-4">
+                  <Text size="lg">{shop.name}</Text>
+                </div>
+              </Link>
             ))
           )}
         </div>
@@ -96,11 +114,12 @@ export default function SearchShop({
           <Pagination
             currentPage={currentPage}
             count={count}
-            handlePageChange={(pageIndex) => setCurrentPage(pageIndex)}
+            handlePageChange={setCurrentPage}
           />
         </div>
       </Container>
     </Wrapper>
   );
-}
+};
 
+export default ShopSearch;

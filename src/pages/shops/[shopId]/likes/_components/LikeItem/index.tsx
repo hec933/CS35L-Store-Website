@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Product from '@/components/common/Product';
 import Spinner from '@/components/common/Spinner';
-import { getProduct } from '@/repository/products'; // Use your utility function
+import { getProducts } from '@/repository/products';
 import { Product as TProduct } from '@/types';
 
 type Props = {
@@ -15,7 +15,7 @@ export default function LikeItem({ productId }: Props) {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await getProduct(productId); // Use getProduct
+        const { data } = await getProducts({ productId: productId });
         setProduct(data);
       } catch (error) {
         console.error('Error fetching product:', error);
