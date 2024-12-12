@@ -2,56 +2,75 @@ import { fetchWithAuthToken } from '@/utils/auth';
 import { Like } from '@/types';
 
 type Params = {
-    shopId: string;
-    fromPage?: number;
-    toPage?: number;
+  shopId: string;
+  fromPage?: number;
+  toPage?: number;
 };
 
 export async function getShopLikes({
-    shopId,
-    fromPage = 0,
-    toPage = 1,
+  shopId,
+  fromPage = 0,
+  toPage = 1,
 }: Params): Promise<{ data: Like[] }> {
-    const response = await fetchWithAuthToken(
-        `/api/cart?shopId=${shopId}&fromPage=${fromPage}&toPage=${toPage}`,
-        'GET'
-    );
-    return response;
+  const response = await fetchWithAuthToken('/api/cart', 'POST', {
+    action: 'fetch',
+    shopId,
+    fromPage,
+    toPage,
+  });
+  return response;
 }
 
 export async function getShopLikeCount(shopId: string): Promise<{ data: number }> {
-    const response = await fetchWithAuthToken(`/api/cart/count?shopId=${shopId}`, 'GET');
-    return { data: response.total };
+  const response = await fetchWithAuthToken('/api/cart', 'POST', {
+    action: 'fetch',
+    shopId,
+    countOnly: true,
+  });
+  return { data: response.total };
 }
 
 export async function getIsLikedWithProductIdAndShopId({
+  productId,
+  shopId,
+}: {
+  productId: string;
+  shopId: string;
+}): Promise<{ data: boolean }> {
+  const response = await fetchWithAuthToken('/api/cart', 'POST', {
+    action: 'fetch',
     productId,
     shopId,
-}: {
-    productId: string;
-    shopId: string;
-}): Promise<{ data: boolean }> {
-    const response = await fetchWithAuthToken(
-        `/api/cart/check?productId=${productId}&shopId=${shopId}`,
-        'GET'
-    );
-    return response;
+    checkLike: true,
+  });
+  return response;
 }
 
 export async function updateLikeQuantity({
-    likeId,
-    quantity,
+  productId,
+  quantity,
 }: {
-    likeId: string;
-    quantity: number;
+  productId: string;
+  quantity: number;
 }): Promise<void> {
-    await fetchWithAuthToken(`/api/cart/${likeId}`, 'PUT', { quantity });
+  await fetchWithAuthToken('/api/cart', 'POST', {
+    action: 'update',
+    productId,
+    quantity,
+  });
 }
 
 export async function addToCart(productId: string): Promise<void> {
-    await fetchWithAuthToken('/api/cart', 'POST', { productId });
+  await fetchWithAuthToken('/api/cart', 'POST', {
+    action: 'add',
+    productId,
+    quantity: 1,
+  });
 }
 
-export async function removeFromCart(likeId: string): Promise<void> {
-    await fetchWithAuthToken(`/api/cart/${likeId}`, 'DELETE');
+export async function removeFromCart(productId: string): Promise<void> {
+  await fetchWithAuthToken('/api/cart', 'POST', {
+    action: 'remove',
+    productId,
+  });
 }
