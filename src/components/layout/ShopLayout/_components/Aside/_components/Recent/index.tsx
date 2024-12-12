@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import RecentItem from './_components/RecentItem';
 import Spinner from '@/components/common/Spinner';
 import Text from '@/components/common/Text';
-import { getAuthToken } from '@/utils/auth';
+import { fetchWithAuthToken } from '@/utils/auth';
 import { RECENT_ITEM_IDS_KEY, getRecentItemIds } from '@/utils/localstorage';
 
 import { Product } from '@/types';
@@ -12,7 +12,6 @@ export default function Recent() {
   const [recentProducts, setRecentProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
 
-  //3 items per page
   const totalPage = useMemo(
     () => Math.max(Math.ceil(recentProducts.length / 3) - 1, 0),
     [recentProducts]
@@ -27,25 +26,14 @@ export default function Recent() {
       setIsLoading(true);
       const recentIds = getRecentItemIds();
       if (recentIds.length === 0) {
-        setRecentProducts([]); // No recent products to fetch
+        setRecentProducts([]);
         return;
       }
 
-      const token = await getAuthToken();
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ productIds: recentIds }),
+      const { data } = await fetchWithAuthToken('/api/products', 'POST', {
+        action: 'fetchByIds',
+        productIds: recentIds,
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch products: ${response.status}`);
-      }
-
-      const { data } = await response.json();
       setRecentProducts(data);
     } catch (error) {
       console.error('Error updating recent products:', error);
@@ -91,7 +79,7 @@ export default function Recent() {
                   id={id}
                   title={title}
                   price={price}
-                  imageUrl={imageUrls[0]} // Use the first image from the array
+                  imageUrl={imageUrls[0]}
                 />
               ))}
           </div>
@@ -123,5 +111,4 @@ export default function Recent() {
     </div>
   );
 }
-
 

@@ -4,41 +4,30 @@ import Spinner from '@/components/common/Spinner';
 import Text from '@/components/common/Text';
 import { fetchWithAuthToken } from '@/utils/auth';
 
-
-//a Liked product is added to the cart 
+//user cart control
 export default function Likes() {
-    const [shopId, setShopId] = useState<string | null>(null);
-    const [likeCount, setLikeCount] = useState<number | undefined>(undefined);
+    const [cartCount, setCartCount] = useState<number | undefined>(undefined);
 
     useEffect(() => {
-        const fetchLikes = async () => {
+        const fetchCart = async () => {
             try {
-                const meResponse = await fetchWithAuthToken('/api/me', 'GET');
-                const { shopId } = meResponse.data;
-
-                if (!shopId) {
-                    setLikeCount(0);
-                    return;
-                }
-
-                const likeResponse = await fetchWithAuthToken(
-                    `/api/shops/${shopId}/likeCount`,
-                    'GET',
-                );
-                setShopId(shopId);
-                setLikeCount(likeResponse.data);
+                const cartResponse = await fetchWithAuthToken('/api/cart', 'POST', {
+                    action: 'fetch',
+                });
+                const cartItems = cartResponse.data;
+                setCartCount(cartItems.length);
             } catch (error) {
-                console.error('Error fetching like count:', error);
-                setLikeCount(0);
+                console.error('Error fetching cart count:', error);
+                setCartCount(0);
             }
         };
 
-        fetchLikes();
+        fetchCart();
     }, []);
 
     return (
         <Link
-            href={!shopId ? '#' : `/shops/${shopId}/likes`}
+            href="/cart"
             className="p-4 flex items-center justify-between cursor-pointer hover:scale-110 transition-transform duration-200"
             aria-label="Cart Section"
         >
@@ -49,11 +38,11 @@ export default function Likes() {
                 >
                     shopping_cart
                 </span>
-                {likeCount === undefined ? (
+                {cartCount === undefined ? (
                     <Spinner />
                 ) : (
                     <Text size="lg" color="uclaBlue">
-                        {likeCount}
+                        {cartCount}
                     </Text>
                 )}
             </div>

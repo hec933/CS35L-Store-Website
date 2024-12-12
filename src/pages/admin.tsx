@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchWithAuth } from '@/utils/auth';
+import { fetchWithAuthToken } from '@/utils/auth';
 import Container from '@/components/layout/Container';
 import Wrapper from '@/components/layout/Wrapper';
 import { AdminPortal } from '@/utils/adminPortal';
@@ -12,7 +12,7 @@ export default function AdminPage() {
     useEffect(() => {
         async function checkAdmin() {
             try {
-                const { role } = await fetchWithAuth('/api/user', 'POST');
+                const { role } = await fetchWithAuthToken('/api/user', 'POST');
                 setIsAdmin(role === 'WEB_ADMIN' || role === 'STORE_ADMIN');
             } catch (error) {
                 console.error('Error checking admin status:', error);

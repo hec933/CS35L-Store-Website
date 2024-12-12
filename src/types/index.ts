@@ -29,6 +29,14 @@ export type Product = {
   createdBy: string;
 };
 
+export type Review = {
+  id: string;
+  shopId: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+};
+
 export type StoreAdmin = {
   id: string;
   name: string;

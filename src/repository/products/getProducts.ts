@@ -1,22 +1,25 @@
-import { Product } from '@/types';
 import { fetchWithAuthToken } from '@/utils/auth';
 
-//get a product
-export async function getProduct(productId: string): Promise<{ data: Product }> {
-    return fetchWithAuthToken('/api/products', 'POST', { productId });
-}
+export async function getProducts(params: {
+  productId?: string;
+  keyword?: string;
+  tag?: string;
+  fromPage?: number;
+  toPage?: number;
+}) {
+  const { productId, keyword, tag, fromPage = 0, toPage = 1 } = params;
 
-//get a list of product ids
-export async function getProducts({
+  const response = await fetchWithAuthToken('/api/products', 'POST', {
+    productId,
     keyword,
     tag,
-    fromPage = 0,
-    toPage = 1,
-}: {
-    keyword?: string;
-    tag?: string;
-    fromPage?: number;
-    toPage?: number;
-}): Promise<{ data: { id: string }[] }> {
-    return fetchWithAuthToken('/api/products', 'POST', { keyword, tag, fromPage, toPage });
+    fromPage,
+    toPage,
+  });
+
+  if (!response || !response.data) {
+    throw new Error('Failed to fetch products');
+  }
+
+  return response;
 }
