@@ -107,3 +107,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Failed to process request' });
   }
 }
+
+//update metadata
+async function updateMostLiked() {
+  const result = await pool.query(
+    `SELECT 
+      p.id, 
+      p.title, 
+      COUNT(ci.id) AS cart_count,
+      p.price,
+      p.image_urls[1] as primary_image,
+      p.shop_id,
+      s.name as shop_name
+     FROM products p
+     LEFT JOIN cart_items ci ON ci.product_id = p.id
+     LEFT JOIN shops s ON s.id = p.shop_id
+     GROUP BY p.id, s.id, s.name
+     ORDER BY cart_count DESC, p.created_at DESC
+     LIMIT 100`
+  );
+
+  const mostLiked = result.rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    cart_count: parseInt(row.cart_count, 10),
+    price: row.price,
+    primary_image: row.primary_image,
+    shop_id: row.shop_id,
+    shop_name: row.shop_name
+  }));
+
+  await pool.query(
+    'UPDATE market SET most_liked = $1, updated_at = NOW()',
+    [JSON.stringify(mostLiked)]
+  );
+}
