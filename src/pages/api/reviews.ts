@@ -36,47 +36,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const userId = decodedToken.uid;
 
     switch (req.method) {
-      case 'POST': {
-        const { action, shopId, content, fromPage = '0', toPage = '1' } = req.body;
 
-        if (action === 'create') {
-          if (!shopId || !content) {
-            return res.status(400).json({ error: 'Shop ID and content required' });
-          }
+    case 'POST': {
+    	 const { action, shopId, fromPage = '0', toPage = '1' } = req.body;
 
-          const result = await pool.query(
-            `INSERT INTO shop_reviews (id, shop_id, user_id, content, created_at)
-             VALUES (gen_random_uuid(), $1, $2, $3, NOW())
-             RETURNING *`,
-            [shopId, userId, content]
-          );
+	 if (!shopId) {
+       	    return res.status(400).json({ error: 'Shop ID is required' });
+	 }
 
-          return res.json({ data: result.rows[0] });
-        }
+    const pageSize = 10;
+    const offset = parseInt(fromPage as string) * pageSize;
+    const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
 
-        let query = `
-          SELECT 
-            sr.*,
-            u.name as user_name
-          FROM shop_reviews sr
-          JOIN users u ON u.id = sr.user_id
-          WHERE sr.shop_id = $1`;
+    const query = `
+      SELECT 
+        sr.*, 
+        u.name AS user_name, 
+        u.image_url AS user_image 
+      FROM shop_reviews sr
+      JOIN users u ON sr.user_id = u.id
+      WHERE sr.shop_id = $1
+      ORDER BY sr.created_at DESC
+      LIMIT $2 OFFSET $3;
+    `;
 
-        const params = [shopId];
-        let paramCount = 2;
+    const params = [shopId, limit, offset];
 
-        const pageSize = 10;
-        const offset = parseInt(fromPage as string) * pageSize;
-        const limit = (parseInt(toPage as string) - parseInt(fromPage as string)) * pageSize;
+    const result = await pool.query(query, params);
+    return res.json({ data: result.rows });
+    }
 
-        query += ` ORDER BY sr.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-        params.push(limit, offset);
 
-        const result = await pool.query(query, params);
-        return res.json({ data: result.rows });
-      }
-
-      case 'DELETE': {
+    case 'DELETE': {
         const { reviewId } = req.query;
         if (!reviewId) {
           return res.status(400).json({ error: 'Review ID required' });
@@ -103,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.json({ message: 'Review deleted successfully' });
       }
 
-      default:
+    default:
         res.setHeader('Allow', ['POST', 'DELETE']);
         return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }

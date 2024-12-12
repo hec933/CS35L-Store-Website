@@ -22,6 +22,9 @@ const pool = new Pool({
   database: 'handy'     
 });
 
+
+
+//back end user api
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -39,41 +42,34 @@ export default async function handler(
     const decodedToken = await adminAuth.verifyIdToken(token);
     const { uid, email, name } = decodedToken;
 
-    const checkUser = await pool.query(
-      'SELECT id FROM users WHERE id = $1',
-      [uid]
-    );
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [uid]);
 
-    if (checkUser.rows.length > 0) {
-      const updateResult = await pool.query(
+    //update user
+    if (userResult.rows.length > 0) {
+      const updatedUser = await pool.query(
         'UPDATE users SET lastin = NOW() WHERE id = $1 RETURNING *',
         [uid]
       );
       return res.json({
-        message: 'User login recorded',
-        user: updateResult.rows[0]
+        message: 'User authenticated successfully',
+        user: updatedUser.rows[0],
       });
     }
 
-    const result = await pool.query(
-      `INSERT INTO users (id, name, email, prefs, firstin, lastin) 
-       VALUES ($1, $2, $3, $4, NOW(), NOW()) 
+    //add user
+    const newUser = await pool.query(
+      `INSERT INTO users (id, name, email, prefs, firstin, lastin, role) 
+       VALUES ($1, $2, $3, $4, NOW(), NOW(), 'REGULAR') 
        RETURNING *`,
-      [
-        uid,
-        name,
-        email,
-        JSON.stringify({ language: 'en' })
-      ]
+      [uid, name, email, JSON.stringify({ language: 'en' })]
     );
 
     return res.json({
       message: 'User created successfully',
-      user: result.rows[0]
+      user: newUser.rows[0],
     });
-
   } catch (error) {
     console.error('Error handling user:', error);
-    return res.status(500).json({ error: 'Failed to process user' });
+    return res.status(500).json({ error: 'Failed to process user request' });
   }
 }
