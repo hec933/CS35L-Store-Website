@@ -28,6 +28,7 @@ export type Product = {
   createdAt: string;
   createdBy: string;
   purchaseBy: string | null;
+  address: string;
 };
 
 export type Like = {
