@@ -12,7 +12,10 @@ type AdminInfo = {
 
 export default function AdminPortal() {
     const [adminInfo, setAdminInfo] = useState<AdminInfo | null>(null);
-    const [formType, setFormType] = useState<'product' | 'store'>('product');    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [formType, setFormType] = useState<'product' | 'store'>('product');
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [productInputValue, setProductInputValue] = useState('');
+    const [isSelectingProduct, setIsSelectingProduct] = useState(false);
     const [storeForm, setStoreForm] = useState({
         name: '',
         imageUrl: '',
@@ -47,7 +50,7 @@ export default function AdminPortal() {
     const [isUrlValid, setIsUrlValid] = useState<boolean | null>(null);
 
     const baselineFormRef = useRef(productForm);
-
+    const isInitialSelection = useRef(true);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -77,7 +80,6 @@ export default function AdminPortal() {
                 console.error('Failed to fetch admin info:', error);
             }
         }
-
         fetchAdminInfo();
     }, []);
 
@@ -105,77 +107,107 @@ export default function AdminPortal() {
                     action: 'fetch',
                     shopId: selectedShop,
                 });
-
                 if (!response || !response.data) {
                     throw new Error('No products found for the selected store.');
                 }
-
                 setProducts(response.data);
             } catch (error) {
                 console.error('Error fetching products:', error);
                 alert('Failed to fetch products. Please try again.');
             }
         }
-
         fetchProducts();
     }, [selectedShop]);
 
-const handleFormChange = (field: keyof typeof productForm, value: any) => {
-    setProductForm((prev) => {
-        const updatedForm = { ...prev, [field]: value };
+    const handleFormChange = (field: keyof typeof productForm, value: any) => {
+        setProductForm((prev) => {
+            const updatedForm = { ...prev, [field]: value };
+            
+            if (!isInitialSelection.current) {
+                const hasChanges = Object.keys(updatedForm).some(
+                    (key) => {
+                        if (Array.isArray(updatedForm[key as keyof typeof productForm])) {
+                            return JSON.stringify(updatedForm[key as keyof typeof productForm]) !==
+                                   JSON.stringify(baselineFormRef.current[key as keyof typeof productForm]);
+                        }
+                        return updatedForm[key as keyof typeof productForm] !==
+                               baselineFormRef.current[key as keyof typeof productForm];
+                    }
+                );
+                setHasUnsavedChanges(hasChanges);
+            }
+            
+            return updatedForm;
+        });
+    };
 
-        // Compare current form fields to baseline form to detect unsaved changes
-        const hasChanges = Object.keys(updatedForm).some(
-            (key) =>
-                updatedForm[key as keyof typeof productForm] !==
-                baselineFormRef.current[key as keyof typeof productForm]
-        );
+    const handleShopChange = (shopId: string) => {
+        if (hasUnsavedChanges) {
+            const confirmDiscard = confirm(
+                'You have unsaved changes. Do you want to discard them?'
+            );
+            if (!confirmDiscard) return;
+        }
+        setSelectedShop(shopId);
+        setHasUnsavedChanges(false);
+        isInitialSelection.current = true;
+    };
 
-        setHasUnsavedChanges(hasChanges);
-        return updatedForm;
-    });
-};
+    const handleProductSelect = (inputValue: string) => {
+    const selected = products.find(p => p.title === inputValue);
+    if (!selected) {
+        return;
+    }
 
-const handleShopChange = (shopId: string) => {
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges && !isInitialSelection.current) {
         const confirmDiscard = confirm(
             'You have unsaved changes. Do you want to discard them?'
         );
-        if (!confirmDiscard) return;
+        if (!confirmDiscard) {
+            setProductInputValue(productForm.title); // Reset input to current form value
+            return;
+        }
     }
-
-    setSelectedShop(shopId);
-    setHasUnsavedChanges(false); // Reset unsaved changes for dropdown change
-};
-
-const handleProductSelect = (productId: string) => {
-    if (hasUnsavedChanges) {
-        const confirmDiscard = confirm(
-            'You have unsaved changes. Do you want to discard them?'
-        );
-        if (!confirmDiscard) return;
-    }
-
-    const selected = products.find((p) => p.id === productId);
-    if (!selected) return;
 
     const newProductForm = {
+        ...productForm,
         title: selected.title,
         price: selected.price.toString(),
         address: selected.address,
         description: selected.description,
-        imageUrls: selected.imageUrls,
-        newImageUrl: '',
+        imageUrls: selected.imageUrls || [],
         isChangable: selected.isChangable,
         isUsed: selected.isUsed,
         tags: selected.tags || [''],
     };
 
     setProductForm(newProductForm);
-    baselineFormRef.current = newProductForm; // Update baseline
-    setSelectedProduct(productId);
-    setHasUnsavedChanges(false); // Reset unsaved changes after product selection
+    setProductInputValue(selected.title);
+    baselineFormRef.current = newProductForm;
+    setSelectedProduct(selected.id);
+    isInitialSelection.current = false;
 };
+
+
+    const newProductForm = {
+        ...productForm, 
+        title: selected.title,
+        price: selected.price.toString(),
+        address: selected.address,
+        description: selected.description,
+        imageUrls: selected.imageUrls || [],
+        isChangable: selected.isChangable,
+        isUsed: selected.isUsed,
+        tags: selected.tags || [''],
+    };
+
+    setProductForm(newProductForm);
+    baselineFormRef.current = newProductForm;
+    setSelectedProduct(selected.id);
+    isInitialSelection.current = false;
+    setIsSelectingProduct(false); 
+};
+
 
     const handleAddImageUrl = async () => {
         if (!productForm.newImageUrl) return;
@@ -195,76 +227,77 @@ const handleProductSelect = (productId: string) => {
         }
     };
 
-const countryOptions = [
-    '...',
-    'Australia',
-    'Canada',
-    'China',
-    'Europe',
-    'Japan',
-    'Mexico',
-    'Russia',
-    'United States',
-];
+    const countryOptions = [
+        '...',
+        'Australia',
+        'Canada',
+        'China',
+        'Europe',
+        'Japan',
+        'Mexico',
+        'Russia',
+        'United States',
+    ];
 
-const currencyMap: Record<string, string> = {
-    'United States': '$',
-    Canada: 'C$',
-    Mexico: 'MX$',
-    Europe: '€',
-    China: '¥',
-    Japan: '¥',
-    Australia: 'A$',
-    Russia: '₽',
-};
+    const currencyMap: Record<string, string> = {
+        'United States': '$',
+        Canada: 'C$',
+        Mexico: 'MX$',
+        Europe: '€',
+        China: '¥',
+        Japan: '¥',
+        Australia: 'A$',
+        Russia: '₽',
+    };
 
-const currencySymbol = currencyMap[productForm.address] || '$';
+    const currencySymbol = currencyMap[productForm.address] || '$';
 
-const handleDelete = async () => {
-    if (formType === 'store') {
-        if (!selectedShop) {
-            alert('Please select a store to delete.');
-            return;
+    const handleDelete = async () => {
+        if (formType === 'store') {
+            if (!selectedShop) {
+                alert('Please select a store to delete.');
+                return;
+            }
+            if (!confirm('Are you sure you want to delete this store?')) return;
+
+            setIsSaving(true);
+            try {
+                await fetchWithAuthToken('/api/shops', 'DELETE', {
+                    shopId: selectedShop,
+                });
+                alert('Store deleted successfully!');
+                setShops((prev) => prev.filter((shop) => shop.id !== selectedShop));
+                setSelectedShop('');
+            } catch (error) {
+                console.error('Error deleting store:', error);
+                alert('Failed to delete store');
+            } finally {
+                setIsSaving(false);
+            }
+        } else if (formType === 'product') {
+            if (!selectedProduct) {
+                alert('Please select a product to delete.');
+                return;
+            }
+            if (!confirm('Are you sure you want to delete this product?')) return;
+
+            setIsSaving(true);
+            try {
+                await fetchWithAuthToken('/api/products', 'DELETE', {
+                    productId: selectedProduct,
+                });
+                alert('Product deleted successfully!');
+                setProducts((prev) => prev.filter((product) => product.id !== selectedProduct));
+                setSelectedProduct('');
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                alert('Failed to delete product');
+            } finally {
+                setIsSaving(false);
+            }
         }
-        if (!confirm('Are you sure you want to delete this store?')) return;
+    };
 
-        setIsSaving(true);
-        try {
-            await fetchWithAuthToken('/api/shops', 'DELETE', {
-                shopId: selectedShop,
-            });
-            alert('Store deleted successfully!');
-            setShops((prev) => prev.filter((shop) => shop.id !== selectedShop));
-            setSelectedShop('');
-        } catch (error) {
-            console.error('Error deleting store:', error);
-            alert('Failed to delete store');
-        } finally {
-            setIsSaving(false);
-        }
-    } else if (formType === 'product') {
-        if (!selectedProduct) {
-            alert('Please select a product to delete.');
-            return;
-        }
-        if (!confirm('Are you sure you want to delete this product?')) return;
-
-        setIsSaving(true);
-        try {
-            await fetchWithAuthToken('/api/products', 'DELETE', {
-                productId: selectedProduct,
-            });
-            alert('Product deleted successfully!');
-            setProducts((prev) => prev.filter((product) => product.id !== selectedProduct));
-            setSelectedProduct('');
-        } catch (error) {
-            console.error('Error deleting product:', error);
-            alert('Failed to delete product');
-        } finally {
-            setIsSaving(false);
-        }
-    }
-};
 
 return (
     <div className="py-12 px-6">
@@ -334,50 +367,48 @@ return (
         ) : (
             <div className="mb-8">
                 <form className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Shop</label>
+                        <select
+                            className="w-full p-2 border rounded"
+                            value={selectedShop}
+                            onChange={(e) => handleShopChange(e.target.value)}
+                        >
+                            <option value="" disabled>
+                                Select a shop...
+                            </option>
+                            {shops?.map((shop) => (
+                                <option key={shop.id} value={shop.id}>
+                                    {shop.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-<div>
-    <label className="block text-sm font-medium mb-1">Shop</label>
-    <select
-        className="w-full p-2 border rounded"
-        value={selectedShop}
-        onChange={(e) => handleShopChange(e.target.value)}
-    >
-        <option value="" disabled>
-            Select a shop...
-        </option>
-        {shops.map((shop) => (
-            <option key={shop.id} value={shop.id}>
-                {shop.name}
-            </option>
-        ))}
-    </select>
-</div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Product</label>
+                        <input
+                            list="product-options"
+                            className="w-full p-2 border rounded"
+                            value={productForm.title}
+                            onChange={(e) => {
+                                handleFormChange('title', e.target.value);
+                            }}
+                            onSelect={(e) => {
+                                handleProductSelect((e.target as HTMLInputElement).value);
+                            }}
+                        />
+                        <datalist id="product-options">
+                            <option value="" label="Add a new product" />
+                            {products?.map((product) => (
+                                <option key={product.id} value={product.title}>
+                                    {product.title}
+                                </option>
+                            ))}
+                        </datalist>
+                    </div>
 
-<div>
-    <label className="block text-sm font-medium mb-1">Product</label>
-    <input
-        list="product-options"
-        className="w-full p-2 border rounded"
-        value={productForm.title}
-        onChange={(e) => handleFormChange('title', e.target.value)}
-        onSelect={(e) =>
-            handleProductSelect((e.target as HTMLInputElement).value)
-        }
-    />
-    <datalist id="product-options">
-        <option value="" label="Add a new product" />
-        {products.map((product) => (
-            <option key={product.id} value={product.id}>
-                {product.title}
-            </option>
-        ))}
-    </datalist>
-</div>
-
-
-
-
-		    <div>
+                    <div>
                         <label className="block text-sm font-medium mb-1">
                             Price ({currencySymbol})
                         </label>
@@ -385,9 +416,7 @@ return (
                             type="number"
                             className="w-full p-2 border rounded"
                             value={productForm.price}
-                            onChange={(e) =>
-                                setProductForm((prev) => ({ ...prev, price: e.target.value }))
-                            }
+                            onChange={(e) => handleFormChange('price', e.target.value)}
                             required
                         />
                     </div>
@@ -396,9 +425,7 @@ return (
                         <select
                             className="w-full p-2 border rounded"
                             value={productForm.address}
-                            onChange={(e) =>
-                                setProductForm((prev) => ({ ...prev, address: e.target.value }))
-                            }
+                            onChange={(e) => handleFormChange('address', e.target.value)}
                         >
                             {countryOptions.map((country) => (
                                 <option key={country} value={country}>
@@ -412,9 +439,7 @@ return (
                         <textarea
                             className="w-full p-2 border rounded"
                             value={productForm.description}
-                            onChange={(e) =>
-                                setProductForm((prev) => ({ ...prev, description: e.target.value }))
-                            }
+                            onChange={(e) => handleFormChange('description', e.target.value)}
                             rows={4}
                         />
                     </div>
@@ -424,12 +449,7 @@ return (
                             className="w-full p-2 border rounded mr-2"
                             placeholder="Image URL"
                             value={productForm.newImageUrl}
-                            onChange={(e) =>
-                                setProductForm((prev) => ({
-                                    ...prev,
-                                    newImageUrl: e.target.value,
-                                }))
-                            }
+                            onChange={(e) => handleFormChange('newImageUrl', e.target.value)}
                         />
                         <Button
                             color={
@@ -449,7 +469,7 @@ return (
                     </div>
                     <div>
                         <ul>
-                            {productForm.imageUrls.map((url, index) => (
+                            {productForm.imageUrls?.map((url, index) => (
                                 <li key={index} className="break-words">
                                     {url}
                                 </li>
@@ -462,12 +482,7 @@ return (
                                 type="checkbox"
                                 className="mr-2"
                                 checked={productForm.isChangable}
-                                onChange={(e) =>
-                                    setProductForm((prev) => ({
-                                        ...prev,
-                                        isChangable: e.target.checked,
-                                    }))
-                                }
+                                onChange={(e) => handleFormChange('isChangable', e.target.checked)}
                             />
                             Can be returned
                         </label>
@@ -476,12 +491,7 @@ return (
                                 type="checkbox"
                                 className="mr-2"
                                 checked={productForm.isUsed}
-                                onChange={(e) =>
-                                    setProductForm((prev) => ({
-                                        ...prev,
-                                        isUsed: e.target.checked,
-                                    }))
-                                }
+                                onChange={(e) => handleFormChange('isUsed', e.target.checked)}
                             />
                             Is used
                         </label>
