@@ -7,16 +7,15 @@ import Search from './_components/Search'
 import Text from '@/components/common/Text'
 import Container from '@/components/layout/Container'
 import Wrapper from '@/components/layout/Wrapper'
-import Login from '../UserInfo/_components/Login'
 import Likes from '../Aside/_components/Likes'
 
-// Aside bar children
 type Props = { children: ReactNode }
 
 export default function Header({ children }: Props) {
     const router = useRouter()
 
     return (
+    <header>
         <div className="sticky top-0 z-10 bg-lightestBlue">
             <Wrapper>
                 <Container>
@@ -25,7 +24,7 @@ export default function Header({ children }: Props) {
                         <div className="flex justify-between items-center py-5">
                             <Link href="/" prefetch={false}>
                                 <Image
-                                    src="/logo.jpg" // UCLA store logo image path
+                                    src="/logo.jpg"
                                     alt="Store Logo"
                                     width={120} // Image width
                                     height={120} // Image height
@@ -51,5 +50,6 @@ export default function Header({ children }: Props) {
             </Wrapper>
             {children}
         </div>
+    </header>
     )
 }

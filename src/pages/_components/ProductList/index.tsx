@@ -7,11 +7,11 @@ import { fetchWithAuthToken } from '@/utils/auth';
 import { Product as TProduct } from '@/types';
 
 type Props = {
-  initialProducts: TProduct[];
+  initialProducts: TProduct[] | null | undefined; // Allow null or undefined for safety
 };
 
-export default function ProductList({ initialProducts }: Props) {
-  const [products, setProducts] = useState<TProduct[]>(initialProducts);
+export default function ProductList({ initialProducts = [] }: Props) {
+  const [products, setProducts] = useState<TProduct[]>(initialProducts || []);
   const MAX_ITEMS = 20;
   const { ref, inView } = useInView({ threshold: 1 });
   const [isLoading, setIsLoading] = useState(false);
@@ -22,8 +22,8 @@ export default function ProductList({ initialProducts }: Props) {
       try {
         setIsLoading(true);
         const response = await fetchWithAuthToken('/api/products', 'POST', {
-          fromPage: 0,
-          toPage: 2,
+          fromPage,
+          toPage,
         });
 
         const { data }: { data: TProduct[] } = await response.json();
@@ -87,4 +87,3 @@ export default function ProductList({ initialProducts }: Props) {
     </div>
   );
 }
-

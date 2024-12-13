@@ -2,7 +2,7 @@ import { ReactNode } from 'react'
 import Aside from './_components/Aside'
 import Footer from './_components/Footer'
 import Header from './_components/Header'
-import UserInfo from './_components/UserInfo'
+import Navbar from '@/components/Navbar'
 
 interface Props {
     children: ReactNode
@@ -11,13 +11,13 @@ interface Props {
 export default function ShopLayout({ children }: Props) {
     return (
         <div style={{ minWidth: 1000 }}>
-            <UserInfo /> {/* Displays login/logout button */}
+            <Navbar /> {/* Replace UserInfo with Navbar */}
             <Header>
                 <Aside />
             </Header>
             <main
                 style={{
-                    minHeight: 'calc(100vh - 28px - 108px - 65px)', // Adjusted for header/footer
+                    minHeight: 'calc(100vh - 28px - 108px - 65px)',
                 }}
             >
                 {children}
