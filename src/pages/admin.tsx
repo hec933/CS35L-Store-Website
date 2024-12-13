@@ -12,10 +12,11 @@ export default function AdminPage() {
     useEffect(() => {
         async function checkAdmin() {
             try {
-                const { role } = await fetchWithAuthToken('/api/user', 'POST');
+                const response = await fetchWithAuthToken('/api/user', 'POST');
+                const role = response.user?.role;
+                if (!role) throw new Error('Role is undefined');
                 setIsAdmin(role === 'WEB_ADMIN' || role === 'STORE_ADMIN');
-            } catch (error) {
-                console.error('Error checking admin status:', error);
+            } catch {
                 setIsAdmin(false);
             }
         }
