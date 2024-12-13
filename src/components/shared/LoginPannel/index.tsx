@@ -1,13 +1,20 @@
 import { useState } from 'react'
 import Button from '@/components/common/Button'
 import Text from '@/components/common/Text'
+import { auth } from '@/utils/firebaseClient'
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 
+export default function LoginPanel() {
+    const handleLogin = async () => {
+        try {
+            const provider = new GoogleAuthProvider()
+            await signInWithPopup(auth, provider)
+        } catch (error) {
+            console.error('Login failed:', error)
+            alert('Login failed. Please try again.')
+        }
+    }
 
-interface LoginPanelProps {
-    handleLogin: () => void; // Function that takes no arguments and returns void
-}
-
-export default function LoginPanel({ handleLogin }: LoginPanelProps) {
     return (
         <div
             className="bg-lightestBlue flex flex-col justify-center items-center p-10 rounded w-112 gap-4"
@@ -16,7 +23,6 @@ export default function LoginPanel({ handleLogin }: LoginPanelProps) {
             <Text size="lg" color="black">
                 Welcome !
             </Text>
-
             <Text size="md" weight="light" color="black">
                 Sign up easily and check out the products
             </Text>

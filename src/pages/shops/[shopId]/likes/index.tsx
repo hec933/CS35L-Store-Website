@@ -3,6 +3,7 @@ import LikeList from './_components/LikeList';
 import Text from '@/components/common/Text';
 import { getShop } from '@/repository/shops/getShop';
 import { getAuthToken } from '@/utils/auth';
+import { Shop } from '@/types';
 
 export const getServerSideProps = async (context) => {
   const shopId = context.query.shopId as string;
@@ -11,23 +12,6 @@ export const getServerSideProps = async (context) => {
   try {
     token = await getAuthToken();
   } catch {}
-
-  if (!token) {
-    const { shop, productCount } = await getShop({
-      shopId,
-      includeProductCount: true,
-    });
-
-    return {
-      props: {
-        shop,
-        productCount,
-        likeCount: 0,
-        likes: [],
-        followerCount: 0,
-      },
-    };
-  }
 
   const { shop, productCount, likes, followerCount } = await getShop({
     shopId,
@@ -39,8 +23,8 @@ export const getServerSideProps = async (context) => {
 
   return {
     props: {
-      shop,
-      productCount,
+      shop: shop || null,
+      productCount: productCount || 0,
       likeCount: likes?.count || 0,
       likes: likes?.list || [],
       followerCount: followerCount || 0,
@@ -54,13 +38,19 @@ export default function LikesPage({
   likeCount,
   likes: initialLikes,
   followerCount,
+}: {
+  shop: Shop | null;
+  productCount: number;
+  likeCount: number;
+  likes: any[];
+  followerCount: number;
 }) {
   return (
     <div className="my-8">
       <div className="flex flex-col items-center">
         <div className="mb-5 text-center">
           <Text size="xl" color="darkestBlue">
-            Shop: {shop.name}
+            Shop: {shop?.name || 'Unknown Shop'}
           </Text>
           <Text size="lg">Followers: {followerCount}</Text>
           <Text size="lg">Products: {productCount}</Text>
@@ -72,7 +62,7 @@ export default function LikesPage({
           <LikeList
             initialLikes={initialLikes}
             count={likeCount}
-            shopId={shop.id}
+            shopId={shop?.id || ''}
           />
         </div>
       </div>

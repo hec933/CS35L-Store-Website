@@ -11,10 +11,6 @@ type Params = {
     toPage?: number;
     countOnly?: boolean;
   };
-  keyword?: string;
-  fromPage?: number;
-  toPage?: number;
-  countOnly?: boolean;
 };
 
 export const getShop = async ({
@@ -23,29 +19,20 @@ export const getShop = async ({
   includeLikes = false,
   includeFollowerCount = false,
   likeOptions,
-  keyword,
-  fromPage = 0,
-  toPage = 1,
-  countOnly = false,
-}: Params): Promise<{ data: Shop[] | number }> => {
-  if (keyword) {
-    const action = countOnly ? 'countByKeyword' : 'fetchByKeyword';
-    return await fetchWithAuthToken('/api/shops', 'POST', {
-      action,
-      keyword,
-      fromPage,
-      toPage,
-    });
+}: Params): Promise<{
+  shop?: Shop;
+  productCount?: number;
+  likes?: { count?: number; list?: any[] };
+  followerCount?: number;
+}> => {
+  const promises: Promise<any>[] = [];
+
+  if (shopId) {
+    promises.push(fetchWithAuthToken(`/api/shops/${shopId}`, 'POST'));
   }
 
-  const promises: Array<Promise<any>> = [
-    shopId ? fetchWithAuthToken(`/api/shops/${shopId}`, 'POST') : null,
-  ].filter(Boolean);
-
   if (includeProductCount) {
-    promises.push(
-      fetchWithAuthToken(`/api/shops/${shopId}/products/count`, 'POST')
-    );
+    promises.push(fetchWithAuthToken(`/api/shops/${shopId}/products/count`, 'POST'));
   }
 
   if (includeLikes && likeOptions) {
@@ -53,15 +40,11 @@ export const getShop = async ({
       ? `/api/shops/${shopId}/likes/count`
       : `/api/shops/${shopId}/likes`;
 
-    promises.push(
-      fetchWithAuthToken(likeUrl, 'POST', likeOptions.countOnly ? undefined : likeOptions)
-    );
+    promises.push(fetchWithAuthToken(likeUrl, 'POST', likeOptions.countOnly ? undefined : likeOptions));
   }
 
   if (includeFollowerCount) {
-    promises.push(
-      fetchWithAuthToken(`/api/shops/${shopId}/followers/count`, 'POST')
-    );
+    promises.push(fetchWithAuthToken(`/api/shops/${shopId}/followers/count`, 'POST'));
   }
 
   const [shop, productCount, likes, followerCount] = await Promise.all(promises);
