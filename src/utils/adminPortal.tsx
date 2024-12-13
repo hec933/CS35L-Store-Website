@@ -18,19 +18,32 @@ function AdminPortal() {
         imageUrl: '',
         introduce: '',
     });
-    const [productForm, setProductForm] = useState({
-        title: '',
-        price: '',
-        address: '',
-        description: '',
-        imageUrls: [''],
-        isChangable: true,
-        isUsed: false,
-        tags: [''],
-    });
+    const [productForm, setProductForm] = useState<{
+    title: string;
+    price: string;
+    address: string;
+    description: string;
+    imageUrls: string[];
+    newImageUrl: string;
+    isChangable: boolean;
+    isUsed: boolean;
+    tags: string[];
+}>({
+    title: '',
+    price: '',
+    address: 'United States',
+    description: '',
+    imageUrls: [], // Explicitly define this as a string[]
+    newImageUrl: '',
+    isChangable: true,
+    isUsed: false,
+    tags: [''],
+});
     const [isSaving, setIsSaving] = useState(false);
     const [selectedShop, setSelectedShop] = useState<string>('');
+    const [selectedProduct, setSelectedProduct] = useState<string>('');
     const [shops, setShops] = useState<Shop[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
 
     useEffect(() => {
         async function fetchAdminInfo() {
@@ -63,6 +76,44 @@ function AdminPortal() {
         fetchShops();
     }, [adminInfo]);
 
+    useEffect(() => {
+        async function fetchProducts() {
+            if (!selectedShop) return;
+            try {
+                const { data } = await fetchWithAuthToken('/api/products', 'POST', {
+                    action: 'fetch',
+                    shopId: selectedShop,
+                });
+                if (!data) throw new Error('Invalid product data response');
+                setProducts(data);
+            } catch (error) {
+                console.error('Failed to fetch products:', error);
+            }
+        }
+        fetchProducts();
+    }, [selectedShop]);
+
+    const handleAddImageUrl = async () => {
+        if (!productForm.newImageUrl) return;
+        try {
+            const response = await fetchWithAuthToken('/api/validate-url', 'POST', {
+                url: productForm.newImageUrl,
+            });
+            if (response?.isValid) {
+                setProductForm((prev) => ({
+                    ...prev,
+                    imageUrls: [...prev.imageUrls, prev.newImageUrl],
+                    newImageUrl: '',
+                }));
+            } else {
+                alert('Invalid URL');
+            }
+        } catch (error) {
+            console.error('Error validating URL:', error);
+            alert('Failed to validate URL');
+        }
+    };
+
     const handleAddStore = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
@@ -74,6 +125,7 @@ function AdminPortal() {
             if (!response?.data) throw new Error('Invalid response structure');
             alert(`Store "${response.data.name}" added successfully!`);
             setStoreForm({ name: '', imageUrl: '', introduce: '' });
+            setShops((prev) => [...prev, response.data]);
         } catch (error) {
             console.error('Error adding store:', error);
             alert('Failed to add store');
@@ -100,14 +152,16 @@ function AdminPortal() {
             alert(`Product "${response.data.title}" added successfully!`);
             setProductForm({
                 title: '',
-                price: '',
-                address: '',
+                price: '19.99',
+                address: 'United States',
                 description: '',
-                imageUrls: [''],
+                imageUrls: [],
+                newImageUrl: '',
                 isChangable: true,
                 isUsed: false,
                 tags: [''],
             });
+            setProducts((prev) => [...prev, response.data]);
         } catch (error) {
             console.error('Error adding product:', error);
             alert('Failed to add product');
@@ -116,29 +170,109 @@ function AdminPortal() {
         }
     };
 
-    if (!adminInfo) {
-        return <div className="p-4 text-red-600">Unauthorized</div>;
-    }
+    const handleDelete = async () => {
+        if (formType === 'store') {
+            if (!selectedShop) {
+                alert('Please select a store to delete.');
+                return;
+            }
+            if (!confirm('Are you sure you want to delete this store?')) return;
+
+            setIsSaving(true);
+            try {
+                await fetchWithAuthToken('/api/shops', 'DELETE', {
+                    shopId: selectedShop,
+                });
+                alert('Store deleted successfully!');
+                setShops((prev) => prev.filter((shop) => shop.id !== selectedShop));
+                setSelectedShop('');
+            } catch (error) {
+                console.error('Error deleting store:', error);
+                alert('Failed to delete store');
+            } finally {
+                setIsSaving(false);
+            }
+        } else if (formType === 'product') {
+            if (!selectedProduct) {
+                alert('Please select a product to delete.');
+                return;
+            }
+            if (!confirm('Are you sure you want to delete this product?')) return;
+
+            setIsSaving(true);
+            try {
+                await fetchWithAuthToken('/api/products', 'DELETE', {
+                    productId: selectedProduct,
+                });
+                alert('Product deleted successfully!');
+                setProducts((prev) => prev.filter((product) => product.id !== selectedProduct));
+                setSelectedProduct('');
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                alert('Failed to delete product');
+            } finally {
+                setIsSaving(false);
+            }
+        }
+    };
+
+    const handleProductSelect = (productId: string) => {
+        const product = products.find((p) => p.id === productId);
+        if (!product) return;
+        setProductForm({
+            title: product.title,
+            price: product.price.toString(),
+            address: product.address,
+            description: product.description,
+            imageUrls: product.imageUrls,
+            newImageUrl: '',
+            isChangable: product.isChangable,
+            isUsed: product.isUsed,
+            tags: product.tags || [''],
+        });
+        setSelectedProduct(productId);
+    };
+
+    const countryOptions = [
+        '...',
+        'Australia',
+        'Canada',
+        'China',
+        'Europe',
+        'Japan',
+        'Mexico',
+        'Russia',
+        'United States',
+    ];
+
+    const currencyMap: Record<string, string> = {
+        'United States': '$',
+        Canada: 'C$',
+        Mexico: 'MX$',
+        Europe: '€',
+        China: '¥',
+        Japan: '¥',
+        Australia: 'A$',
+        Russia: '₽',
+    };
+
+    const currencySymbol = currencyMap[productForm.address] || '$';
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6">Admin Portal</h1>
-            {adminInfo.role === 'WEB_ADMIN' && (
-                <div className="mb-6 flex justify-center">
-                    <Button
-                        color="uclaBlue"
-                        size="md"
-                        className="shadow-lg transform hover:scale-105 transition-transform"
-                        onClick={() => setFormType(formType === 'product' ? 'store' : 'product')}
-                    >
-                        {formType === 'product' ? 'Add Store' : 'Back to Product Form'}
-                    </Button>
-                </div>
-            )}
+            <div className="flex justify-center mb-6">
+                <Button
+                    color="uclaBlue"
+                    size="md"
+                    className="shadow-lg transform hover:scale-105 transition-transform"
+                    onClick={() => setFormType(formType === 'product' ? 'store' : 'product')}
+                >
+                    {formType === 'product' ? 'Add Store' : 'Back to Product Form'}
+                </Button>
+            </div>
 
             {formType === 'store' ? (
                 <div className="mb-8">
-                    <h2 className="text-xl font-semibold mb-4">Add New Store</h2>
                     <form onSubmit={handleAddStore} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium mb-1">Store Name</label>
@@ -174,29 +308,32 @@ function AdminPortal() {
                                 rows={4}
                             />
                         </div>
-                        <Button
-                            color="uclaBlue"
-                            size="md"
-                            type="submit"
-                            isLoading={isSaving}
-                            className="shadow-lg transform hover:scale-105 transition-transform"
-                        >
-                            Save Store
-                        </Button>
+                        <div className="flex justify-center">
+                            <Button
+                                color="uclaBlue"
+                                size="md"
+                                type="submit"
+                                isLoading={isSaving}
+                                className="shadow-lg transform hover:scale                                -105 transition-transform"
+                            >
+                                Add Store
+                            </Button>
+                        </div>
                     </form>
                 </div>
             ) : (
                 <div className="mb-8">
-                    <h2 className="text-xl font-semibold mb-4">Add New Product</h2>
                     <form onSubmit={handleAddProduct} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1">Select Shop</label>
+                            <label className="block text-sm font-medium mb-1">Shop</label>
                             <select
                                 className="w-full p-2 border rounded"
                                 value={selectedShop}
                                 onChange={(e) => setSelectedShop(e.target.value)}
                             >
-                                <option value="">Choose a shop</option>
+                                <option value="" disabled>
+                                    ...
+                                </option>
                                 {shops.map((shop) => (
                                     <option key={shop.id} value={shop.id}>
                                         {shop.name}
@@ -217,7 +354,9 @@ function AdminPortal() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Price</label>
+                            <label className="block text-sm font-medium mb-1">
+                                Price ({currencySymbol})
+                            </label>
                             <input
                                 type="number"
                                 className="w-full p-2 border rounded"
@@ -229,16 +368,20 @@ function AdminPortal() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Address</label>
-                            <input
-                                type="text"
+                            <label className="block text-sm font-medium mb-1">Country</label>
+                            <select
                                 className="w-full p-2 border rounded"
                                 value={productForm.address}
                                 onChange={(e) =>
                                     setProductForm((prev) => ({ ...prev, address: e.target.value }))
                                 }
-                                required
-                            />
+                            >
+                                {countryOptions.map((country) => (
+                                    <option key={country} value={country}>
+                                        {country}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Description</label>
@@ -251,26 +394,87 @@ function AdminPortal() {
                                 rows={4}
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Image URLs</label>
-                            <textarea
-                                className="w-full p-2 border rounded"
-                                value={productForm.imageUrls.join('\n')}
+                        <div className="flex items-center">
+                            <input
+                                type="text"
+                                className="flex-grow p-2 border rounded mr-2"
+                                placeholder="Image URL"
+                                value={productForm.newImageUrl}
                                 onChange={(e) =>
-                                    setProductForm((prev) => ({ ...prev, imageUrls: e.target.value.split('\n') }))
+                                    setProductForm((prev) => ({
+                                        ...prev,
+                                        newImageUrl: e.target.value,
+                                    }))
                                 }
-                                rows={2}
                             />
+                            <Button
+                                color="uclaBlue"
+                                size="sm"
+                                onClick={handleAddImageUrl}
+                                className="shadow-lg transform hover:scale-105 transition-transform"
+                            >
+                                Add URL
+                            </Button>
                         </div>
-                        <Button
-                            color="uclaBlue"
-                            size="md"
-                            type="submit"
-                            isLoading={isSaving}
-                            className="shadow-lg transform hover:scale-105 transition-transform"
-                        >
-                            Save Product
-                        </Button>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Images</label>
+                            <ul>
+                                {productForm.imageUrls.map((url, index) => (
+                                    <li key={index} className="break-words">
+                                        {url}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                <input
+                                    type="checkbox"
+                                    className="mr-2"
+                                    checked={productForm.isChangable}
+                                    onChange={(e) =>
+                                        setProductForm((prev) => ({
+                                            ...prev,
+                                            isChangable: e.target.checked,
+                                        }))
+                                    }
+                                />
+                                Can be returned
+                            </label>
+                            <label className="block text-sm font-medium mb-1">
+                                <input
+                                    type="checkbox"
+                                    className="mr-2"
+                                    checked={productForm.isUsed}
+                                    onChange={(e) =>
+                                        setProductForm((prev) => ({
+                                            ...prev,
+                                            isUsed: e.target.checked,
+                                        }))
+                                    }
+                                />
+                                Is used
+                            </label>
+                        </div>
+                        <div className="flex justify-between">
+                            <Button
+                                color="uclaBlue"
+                                size="md"
+                                type="submit"
+                                isLoading={isSaving}
+                                className="shadow-lg transform hover:scale-105 transition-transform"
+                            >
+                                Save Product
+                            </Button>
+                            <Button
+                                color="red"
+                                size="md"
+                                onClick={handleDelete}
+                                className="shadow-lg transform hover:scale-105 transition-transform"
+                            >
+                                Delete Product
+                            </Button>
+                        </div>
                     </form>
                 </div>
             )}
@@ -278,4 +482,5 @@ function AdminPortal() {
     );
 }
 
-export { AdminPortal };
+export default AdminPortal;
+

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchWithAuthToken } from '@/utils/auth';
 import Container from '@/components/layout/Container';
 import Wrapper from '@/components/layout/Wrapper';
-import { AdminPortal } from '@/utils/adminPortal';
+import AdminPortal from '@/utils/adminPortal';
 import { RequestAccess } from '@/utils/requestAccess';
 
 export default function AdminPage() {
