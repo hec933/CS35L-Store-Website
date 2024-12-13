@@ -43,39 +43,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const user = await verifyAuth(req);
 
-    if (req.method === 'POST' && req.body.action === 'add') {
-      const {
-        shopId,
-        title,
-        price,
-        address,
-        description,
-        imageUrls,
-        isChangable,
-        isUsed,
-        tags,
-      } = req.body;
+    if (req.method === 'POST') {
+      const { action } = req.body;
 
-      if (!shopId) {
-        return res.status(400).json({ error: 'Shop ID is required' });
-      }
-
-      const isWebAdmin = user.role === 'WEB_ADMIN';
-      const hasStorePermission = await pool.query(
-        'SELECT * FROM store_permissions WHERE user_id = $1 AND shop_id = $2',
-        [user.id, shopId]
-      );
-
-      if (!isWebAdmin && hasStorePermission.rows.length === 0) {
-        return res.status(403).json({ error: 'User not authorized for this shop' });
-      }
-
-      const productId = `prod_${Date.now()}`;
-      await pool.query(
-        `INSERT INTO products (id, shop_id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-        [
-          productId,
+      if (action === 'add') {
+        const {
           shopId,
           title,
           price,
@@ -85,14 +57,73 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           isChangable,
           isUsed,
           tags,
-          user.id,
-        ]
-      );
+        } = req.body;
 
-      return res.json({ message: 'Product added successfully', data: { id: productId, title } });
+        if (!shopId) {
+          return res.status(400).json({ error: 'Shop ID is required' });
+        }
+
+        const isWebAdmin = user.role === 'WEB_ADMIN';
+        const hasStorePermission = await pool.query(
+          'SELECT * FROM store_permissions WHERE user_id = $1 AND shop_id = $2',
+          [user.id, shopId]
+        );
+
+        if (!isWebAdmin && hasStorePermission.rows.length === 0) {
+          return res.status(403).json({ error: 'User not authorized for this shop' });
+        }
+
+        const productId = `prod_${Date.now()}`;
+        await pool.query(
+          `INSERT INTO products (id, shop_id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [
+            productId,
+            shopId,
+            title,
+            price,
+            address,
+            description,
+            imageUrls,
+            isChangable,
+            isUsed,
+            tags,
+            user.id,
+          ]
+        );
+
+        return res.json({ message: 'Product added successfully', data: { id: productId, title } });
+      }
+
+      if (action === 'fetch') {
+        const { shopId } = req.body;
+
+        if (!shopId) {
+          return res.status(400).json({ error: 'Shop ID is required' });
+        }
+
+        const isWebAdmin = user.role === 'WEB_ADMIN';
+        const hasStorePermission = await pool.query(
+          'SELECT * FROM store_permissions WHERE user_id = $1 AND shop_id = $2',
+          [user.id, shopId]
+        );
+
+        if (!isWebAdmin && hasStorePermission.rows.length === 0) {
+          return res.status(403).json({ error: 'User not authorized for this shop' });
+        }
+
+        const products = await pool.query(
+          'SELECT id, title, price, address, description, image_urls, is_changable, is_used, tags FROM products WHERE shop_id = $1',
+          [shopId]
+        );
+
+        return res.json({ data: products.rows });
+      }
+
+      return res.status(400).json({ error: 'Invalid action' });
     }
 
-    return res.status(400).json({ error: 'Invalid request' });
+    return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Error in products handler:', error instanceof Error ? error.message : error);
     return res.status(500).json({ error: 'Failed to process request' });
