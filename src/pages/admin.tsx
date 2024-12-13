@@ -5,7 +5,6 @@ import Wrapper from '@/components/layout/Wrapper';
 import { AdminPortal } from '@/utils/adminPortal';
 import { RequestAccess } from '@/utils/requestAccess';
 
-//admin login page
 export default function AdminPage() {
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
@@ -13,10 +12,16 @@ export default function AdminPage() {
         async function checkAdmin() {
             try {
                 const response = await fetchWithAuthToken('/api/user', 'POST');
-                const role = response.user?.role;
+                if (!response || !response.user) throw new Error('Invalid response structure');
+
+		console.log(response.user);
+
+                const { role } = response.user;
                 if (!role) throw new Error('Role is undefined');
+                
                 setIsAdmin(role === 'WEB_ADMIN' || role === 'STORE_ADMIN');
-            } catch {
+            } catch (error) {
+                console.error('Error checking admin status:', error);
                 setIsAdmin(false);
             }
         }
