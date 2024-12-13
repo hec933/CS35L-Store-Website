@@ -18,7 +18,7 @@ function RequestAccess() {
 
         const checkPermissions = async () => {
             try {
-                const response = await fetchWithAuthToken('/api/users', 'POST', { 
+                const response = await fetchWithAuthToken('/api/user', 'POST', { 
                     action: 'checkPermissions' 
                 });
                 if (response.data.role !== 'REGULAR') {

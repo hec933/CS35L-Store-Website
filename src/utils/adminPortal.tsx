@@ -1,28 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { fetchWithAuthToken } from '@/utils/auth';
+import { Product, Shop } from '@/types'
 
 type AdminRole = 'STORE_ADMIN' | 'WEB_ADMIN';
+
 type AdminInfo = {
   role: AdminRole;
   authorizedStores?: string[];
-};
-
-type Shop = {
-  id: string;
-  name: string;
-  image_url?: string;
-  introduce?: string;
-};
-
-type Product = {
-  id: string;
-  title: string;
-  price: number;
-  description: string;
-  imageUrls: string[];
-  isChangable: boolean;
-  isUsed: boolean;
-  tags: string[];
 };
 
 
@@ -55,21 +39,22 @@ function AdminPortal() {
 
   useEffect(() => {
     async function fetchAdminInfo() {
-      setAdminError('');
-      setIsLoadingAdmin(true);
-      try {
-        const { data } = await fetchWithAuthToken('/api/user', 'POST', {});
-        if (data.role === 'WEB_ADMIN' || data.role === 'STORE_ADMIN') {
-          setAdminInfo({ role: data.role, authorizedStores: data.authorizedStores });
-        } else {
-          setAdminError('User is not an admin');
-        }
-      } catch (error) {
-        setAdminError('Failed to fetch admin info');
-        console.error('Error fetching admin info:', error);
-      } finally {
-        setIsLoadingAdmin(false);
-      }
+    	  setAdminError('');
+    	  setIsLoadingAdmin(true);
+    	  try {
+    	     const { data } = await fetchWithAuthToken('/api/user', 'POST', {});
+    	     if (!data.role) throw new Error('Role is missing in the response');
+    	     if (data.role === 'WEB_ADMIN' || data.role === 'STORE_ADMIN') {
+      	        setAdminInfo({ role: data.role, authorizedStores: data.authorizedStores });
+    	     } else {
+      	      setAdminError('User is not an admin');
+    	    }
+    	  } catch (error) {
+    	     setAdminError('Failed to fetch admin info');
+    	     console.error('Error fetching admin info:', error);
+    	  } finally {
+    	     setIsLoadingAdmin(false);
+    	  }
     }
     fetchAdminInfo();
   }, []);
