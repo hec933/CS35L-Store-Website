@@ -44,6 +44,24 @@ function AdminPortal() {
     const [selectedProduct, setSelectedProduct] = useState<string>('');
     const [shops, setShops] = useState<Shop[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [isUrlValid, setIsUrlValid] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (!productForm.newImageUrl) {
+                setIsUrlValid(null);
+                return;
+            }
+            const dangerousChars = /[<>{}|\\^`]|javascript:/i;
+            const validImageExt = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+            
+            setIsUrlValid(
+                !dangerousChars.test(productForm.newImageUrl) && 
+                validImageExt.test(productForm.newImageUrl)
+            );
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [productForm.newImageUrl]);
 
     useEffect(() => {
         async function fetchAdminInfo() {
@@ -257,7 +275,6 @@ function AdminPortal() {
     };
 
     const currencySymbol = currencyMap[productForm.address] || '$';
-
     return (
         <div className="p-6">
             <div className="flex justify-center mb-6">
@@ -314,7 +331,7 @@ function AdminPortal() {
                                 size="md"
                                 type="submit"
                                 isLoading={isSaving}
-                                className="shadow-lg transform hover:scale                                -105 transition-transform"
+                                className="shadow-lg transform hover:scale-105 transition-transform"
                             >
                                 Add Store
                             </Button>
@@ -408,8 +425,8 @@ function AdminPortal() {
                                 }
                             />
                             <Button
-                                color="uclaBlue"
-                                size="sm"
+                                color={isUrlValid === null ? "uclaBlue" : isUrlValid ? "uclaGold" : "red"}
+                                size="md"
                                 onClick={handleAddImageUrl}
                                 className="shadow-lg transform hover:scale-105 transition-transform"
                             >
@@ -483,4 +500,3 @@ function AdminPortal() {
 }
 
 export default AdminPortal;
-
