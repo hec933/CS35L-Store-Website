@@ -13,6 +13,7 @@ type AdminInfo = {
 function AdminPortal() {
    const [adminInfo, setAdminInfo] = useState<AdminInfo | null>(null);
    const [formType, setFormType] = useState<'product' | 'store'>('product');
+   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
    const [storeForm, setStoreForm] = useState({
        name: '',
        imageUrl: '',
@@ -45,6 +46,23 @@ function AdminPortal() {
    const [shops, setShops] = useState<Shop[]>([]);
    const [products, setProducts] = useState<Product[]>([]);
    const [isUrlValid, setIsUrlValid] = useState<boolean | null>(null);
+
+     const handleFormChange = (field: keyof typeof productForm, value: any) => {
+       setProductForm((prev) => {
+           const updatedForm = { ...prev, [field]: value };
+           const currentProduct = products.find((p) => p.id === selectedProduct);
+           const hasChanges = currentProduct
+               ? Object.keys(updatedForm).some(
+                     (key) =>
+                         updatedForm[key as keyof typeof productForm] !==
+                         currentProduct[key as keyof Product]
+                 )
+               : true;
+
+           setHasUnsavedChanges(hasChanges);
+           return updatedForm;
+       });
+   };
 
    useEffect(() => {
        const handler = setTimeout(() => {
@@ -94,22 +112,55 @@ function AdminPortal() {
        fetchShops();
    }, [adminInfo]);
 
-   useEffect(() => {
-       async function fetchProducts() {
-           if (!selectedShop) return;
-           try {
-               const { data } = await fetchWithAuthToken('/api/products', 'POST', {
-                   action: 'fetch',
-                   shopId: selectedShop,
-               });
-               if (!data) throw new Error('Invalid product data response');
-               setProducts(data);
-           } catch (error) {
-               console.error('Failed to fetch products:', error);
+      useEffect(() => {
+    async function fetchProducts() {
+            if (!selectedShop) return;
+        try {
+            const response = await fetchWithAuthToken('/api/products', 'POST', {
+                action: 'fetch',
+                shopId: selectedShop,
+            });
+
+            if (!response || !response.data) {
+                throw new Error('No products found for the selected store.');
+            }
+
+            setProducts(response.data);
+        } catch (error) {
+            console.error('Error fetching products:', error);
+            alert('Failed to fetch products. Please try again.');
+        }
+    }
+
+    fetchProducts();
+}, [selectedShop]); 
+
+    const handleProductSelect = (productId: string) => {
+       if (hasUnsavedChanges) {
+           if (!confirm('You have unsaved changes. Do you want to discard them?')) {
+               return; 
            }
        }
-       fetchProducts();
-   }, [selectedShop]);
+
+       const selected = products.find((p) => p.id === productId);
+       if (!selected) return;
+
+       setProductForm({
+           title: selected.title,
+           price: selected.price.toString(),
+           address: selected.address,
+           description: selected.description,
+           imageUrls: selected.imageUrls,
+           newImageUrl: '',
+           isChangable: selected.isChangable,
+           isUsed: selected.isUsed,
+           tags: selected.tags || [''],
+       });
+
+       setSelectedProduct(productId);
+       setHasUnsavedChanges(false);
+   };
+
 
    const handleAddImageUrl = async () => {
        if (!productForm.newImageUrl) return;
@@ -236,23 +287,6 @@ function AdminPortal() {
        }
    };
 
-   const handleProductSelect = (productId: string) => {
-       const product = products.find((p) => p.id === productId);
-       if (!product) return;
-       setProductForm({
-           title: product.title,
-           price: product.price.toString(),
-           address: product.address,
-           description: product.description,
-           imageUrls: product.imageUrls,
-           newImageUrl: '',
-           isChangable: product.isChangable,
-           isUsed: product.isUsed,
-           tags: product.tags || [''],
-       });
-       setSelectedProduct(productId);
-   };
-
    const countryOptions = [
        '...',
        'Australia',
@@ -364,19 +398,26 @@ function AdminPortal() {
                                ))}
                            </select>
                        </div>
-                       <div>
-                           <label className="block text-sm font-medium mb-1">Title</label>
-                           <input
-                               type="text"
-                               className="w-full p-2 border rounded"
-                               value={productForm.title}
-                               onChange={(e) =>
-                                   setProductForm((prev) => ({ ...prev, title: e.target.value }))
-                               }
-                               required
-                           />
-                       </div>
-                       <div>
+		       <div>
+    <label className="block text-sm font-medium mb-1">Product</label>
+    <input
+        list="product-options"
+        className="w-full p-2 border rounded"
+        value={productForm.title}
+        onChange={(e) => handleFormChange('title', e.target.value)}
+        onSelect={(e) => handleProductSelect((e.target as HTMLInputElement).value)}
+    />
+    <datalist id="product-options">
+        <option value="" label="Add a new product" />
+        {products.map((product) => (
+            <option key={product.id} value={product.id}>
+                {product.title}
+            </option>
+        ))}
+    </datalist>
+</div>
+
+		       <div>
                            <label className="block text-sm font-medium mb-1">
                                Price ({currencySymbol})
                            </label>
@@ -434,7 +475,8 @@ function AdminPortal() {
                                color={isUrlValid === null ? "uclaBlue" : isUrlValid ? "uclaGold" : "red"}
                                size="md"
                                onClick={handleAddImageUrl}
-                               className="shadow-lg transform hover:scale-105 transition-transform whitespace-nowrap"
+			       type="button"
+			       className="shadow-lg transform hover:scale-105 transition-transform whitespace-nowrap"
                            >
                                Add Image URL
                            </Button>
