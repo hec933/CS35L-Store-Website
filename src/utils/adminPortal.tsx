@@ -49,6 +49,7 @@ export default function AdminPortal() {
 
     const baselineFormRef = useRef(productForm);
     const isInitialSelection = useRef(true);
+    const productsRef = useRef<Product[]>([]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -98,22 +99,34 @@ export default function AdminPortal() {
     }, [adminInfo]);
 
     useEffect(() => {
-        async function fetchProducts() {
-            if (!selectedShop) return;
-            try {
-                const response = await fetchWithAuthToken('/api/products', 'POST', {
-                    action: 'fetch',
-                    shopId: selectedShop,
-                });
-                if (!response || !response.data) {
-                    throw new Error('No products found for the selected store.');
-                }
-                setProducts(response.data);
-            } catch (error) {
-                console.error('Error fetching products:', error);
-                alert('Failed to fetch products. Please try again.');
-            }
+    console.log('Selected shop ID in useEffect:', selectedShop); // Logs the value when `useEffect` triggers
+
+async function fetchProducts() {
+    if (!selectedShop) return;
+    try {
+
+    	console.log('Fetching products with payload:', {
+    action: 'fetch',
+    shopId: selectedShop,
+});
+
+    	const response = await fetchWithAuthToken('/api/products', 'POST', {
+            action: 'fetch',
+            shopId: selectedShop,
+        });
+        if (response.error) {
+            throw new Error(response.error); // Catch the error here
         }
+        productsRef.current = response.data;
+        setProducts(response.data);
+    } catch (error) {
+        console.error('Error fetching products:', error.message || error);
+        alert(`Failed to fetch products: ${error.message || error}`);
+    }
+}
+
+
+
         fetchProducts();
     }, [selectedShop]);
 
@@ -147,12 +160,13 @@ export default function AdminPortal() {
             if (!confirmDiscard) return;
         }
         setSelectedShop(shopId);
-        setHasUnsavedChanges(false);
+	console.log('Selected shop ID:', selectedShop);
+	setProducts([]); // Clear products before fetching new ones
         isInitialSelection.current = true;
     };
 
     const handleProductSelect = (inputValue: string) => {
-        const selected = products.find(p => p.title === inputValue);
+        const selected = productsRef.current.find((p) => p.title === inputValue);
         if (!selected) return;
 
         if (hasUnsavedChanges && !isInitialSelection.current) {
@@ -268,7 +282,6 @@ export default function AdminPortal() {
             }
         }
     };
-
     return (
         <div className="py-12 px-6">
             <div className="pt-8">
@@ -370,7 +383,7 @@ export default function AdminPortal() {
                             />
                             <datalist id="product-options">
                                 <option value="" label="Add a new product" />
-                                {products?.map((product) => (
+                                {productsRef.current?.map((product) => (
                                     <option key={product.id} value={product.title}>
                                         {product.title}
                                     </option>
