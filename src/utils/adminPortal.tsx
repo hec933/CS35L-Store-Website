@@ -188,27 +188,6 @@ export default function AdminPortal() {
     isInitialSelection.current = false;
 };
 
-
-    const newProductForm = {
-        ...productForm, 
-        title: selected.title,
-        price: selected.price.toString(),
-        address: selected.address,
-        description: selected.description,
-        imageUrls: selected.imageUrls || [],
-        isChangable: selected.isChangable,
-        isUsed: selected.isUsed,
-        tags: selected.tags || [''],
-    };
-
-    setProductForm(newProductForm);
-    baselineFormRef.current = newProductForm;
-    setSelectedProduct(selected.id);
-    isInitialSelection.current = false;
-    setIsSelectingProduct(false); 
-};
-
-
     const handleAddImageUrl = async () => {
         if (!productForm.newImageUrl) return;
         try {
