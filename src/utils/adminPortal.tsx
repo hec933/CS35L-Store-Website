@@ -14,8 +14,6 @@ export default function AdminPortal() {
     const [adminInfo, setAdminInfo] = useState<AdminInfo | null>(null);
     const [formType, setFormType] = useState<'product' | 'store'>('product');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const [productInputValue, setProductInputValue] = useState('');
-    const [isSelectingProduct, setIsSelectingProduct] = useState(false);
     const [storeForm, setStoreForm] = useState({
         name: '',
         imageUrl: '',
@@ -154,39 +152,33 @@ export default function AdminPortal() {
     };
 
     const handleProductSelect = (inputValue: string) => {
-    const selected = products.find(p => p.title === inputValue);
-    if (!selected) {
-        return;
-    }
+        const selected = products.find(p => p.title === inputValue);
+        if (!selected) return;
 
-    if (hasUnsavedChanges && !isInitialSelection.current) {
-        const confirmDiscard = confirm(
-            'You have unsaved changes. Do you want to discard them?'
-        );
-        if (!confirmDiscard) {
-            setProductInputValue(productForm.title); // Reset input to current form value
-            return;
+        if (hasUnsavedChanges && !isInitialSelection.current) {
+            const confirmDiscard = confirm(
+                'You have unsaved changes. Do you want to discard them?'
+            );
+            if (!confirmDiscard) return;
         }
-    }
 
-    const newProductForm = {
-        ...productForm,
-        title: selected.title,
-        price: selected.price.toString(),
-        address: selected.address,
-        description: selected.description,
-        imageUrls: selected.imageUrls || [],
-        isChangable: selected.isChangable,
-        isUsed: selected.isUsed,
-        tags: selected.tags || [''],
+        const newProductForm = {
+            title: selected.title,
+            price: selected.price.toString(),
+            address: selected.address,
+            description: selected.description,
+            imageUrls: selected.imageUrls || [],
+            newImageUrl: '',
+            isChangable: selected.isChangable,
+            isUsed: selected.isUsed,
+            tags: selected.tags || [''],
+        };
+
+        setProductForm(newProductForm);
+        baselineFormRef.current = newProductForm;
+        setSelectedProduct(selected.id);
+        isInitialSelection.current = false;
     };
-
-    setProductForm(newProductForm);
-    setProductInputValue(selected.title);
-    baselineFormRef.current = newProductForm;
-    setSelectedProduct(selected.id);
-    isInitialSelection.current = false;
-};
 
     const handleAddImageUrl = async () => {
         if (!productForm.newImageUrl) return;
@@ -277,226 +269,225 @@ export default function AdminPortal() {
         }
     };
 
-
-return (
-    <div className="py-12 px-6">
-        <div className="pt-8">
-            <div className="flex justify-center mb-6">
-                <Button
-                    color="uclaBlue"
-                    size="md"
-                    className="shadow-lg transform hover:scale-105 transition-transform"
-                    onClick={() => setFormType(formType === 'product' ? 'store' : 'product')}
-                >
-                    {formType === 'product' ? 'Switch to Store Form' : 'Switch to Product Form'}
-                </Button>
+    return (
+        <div className="py-12 px-6">
+            <div className="pt-8">
+                <div className="flex justify-center mb-6">
+                    <Button
+                        color="uclaBlue"
+                        size="md"
+                        className="shadow-lg transform hover:scale-105 transition-transform"
+                        onClick={() => setFormType(formType === 'product' ? 'store' : 'product')}
+                    >
+                        {formType === 'product' ? 'Switch to Store Form' : 'Switch to Product Form'}
+                    </Button>
+                </div>
             </div>
+
+            {formType === 'store' ? (
+                <div className="mb-8">
+                    <form className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Store Name</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 border rounded"
+                                value={storeForm.name}
+                                onChange={(e) =>
+                                    setStoreForm((prev) => ({ ...prev, name: e.target.value }))
+                                }
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Image URL</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 border rounded"
+                                value={storeForm.imageUrl}
+                                onChange={(e) =>
+                                    setStoreForm((prev) => ({ ...prev, imageUrl: e.target.value }))
+                                }
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Introduction</label>
+                            <textarea
+                                className="w-full p-2 border rounded"
+                                value={storeForm.introduce}
+                                onChange={(e) =>
+                                    setStoreForm((prev) => ({ ...prev, introduce: e.target.value }))
+                                }
+                                rows={4}
+                            />
+                        </div>
+                        <div className="flex justify-center">
+                            <Button
+                                color="uclaBlue"
+                                size="md"
+                                type="submit"
+                                isLoading={isSaving}
+                                className="shadow-lg transform hover:scale-105 transition-transform"
+                            >
+                                Add Store
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+            ) : (
+                <div className="mb-8">
+                    <form className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Shop</label>
+                            <select
+                                className="w-full p-2 border rounded"
+                                value={selectedShop}
+                                onChange={(e) => handleShopChange(e.target.value)}
+                            >
+                                <option value="" disabled>
+                                    Select a shop...
+                                </option>
+                                {shops?.map((shop) => (
+                                    <option key={shop.id} value={shop.id}>
+                                        {shop.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Product</label>
+                            <input
+                                list="product-options"
+                                className="w-full p-2 border rounded"
+                                value={productForm.title}
+                                onChange={(e) => {
+                                    handleFormChange('title', e.target.value);
+                                }}
+                                onSelect={(e) => {
+                                    handleProductSelect((e.target as HTMLInputElement).value);
+                                }}
+                            />
+                            <datalist id="product-options">
+                                <option value="" label="Add a new product" />
+                                {products?.map((product) => (
+                                    <option key={product.id} value={product.title}>
+                                        {product.title}
+                                    </option>
+                                ))}
+                            </datalist>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Price ({currencySymbol})
+                            </label>
+                            <input
+                                type="number"
+                                className="w-full p-2 border rounded"
+                                value={productForm.price}
+                                onChange={(e) => handleFormChange('price', e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Country</label>
+                            <select
+                                className="w-full p-2 border rounded"
+                                value={productForm.address}
+                                onChange={(e) => handleFormChange('address', e.target.value)}
+                            >
+                                {countryOptions.map((country) => (
+                                    <option key={country} value={country}>
+                                        {country}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Description</label>
+                            <textarea
+                                className="w-full p-2 border rounded"
+                                value={productForm.description}
+                                onChange={(e) => handleFormChange('description', e.target.value)}
+                                rows={4}
+                            />
+                        </div>
+                        <div className="flex items-center">
+                            <input
+                                type="text"
+                                className="w-full p-2 border rounded mr-2"
+                                placeholder="Image URL"
+                                value={productForm.newImageUrl}
+                                onChange={(e) => handleFormChange('newImageUrl', e.target.value)}
+                            />
+                            <Button
+                                color={
+                                    isUrlValid === null
+                                        ? 'uclaBlue'
+                                        : isUrlValid
+                                        ? 'uclaGold'
+                                        : 'red'
+                                }
+                                size="md"
+                                onClick={handleAddImageUrl}
+                                type="button"
+                                className="shadow-lg transform hover:scale-105 transition-transform whitespace-nowrap"
+                            >
+                                Add Image URL
+                            </Button>
+                        </div>
+                        <div>
+                            <ul>
+                                {productForm.imageUrls?.map((url, index) => (
+                                    <li key={index} className="break-words">
+                                        {url}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                <input
+                                    type="checkbox"
+                                    className="mr-2"
+                                    checked={productForm.isChangable}
+                                    onChange={(e) => handleFormChange('isChangable', e.target.checked)}
+                                />
+                                Can be returned
+                            </label>
+                            <label className="block text-sm font-medium mb-1">
+                                <input
+                                    type="checkbox"
+                                    className="mr-2"
+                                    checked={productForm.isUsed}
+                                    onChange={(e) => handleFormChange('isUsed', e.target.checked)}
+                                />
+                                Is used
+                            </label>
+                        </div>
+                        <div className="flex justify-between">
+                            <Button
+                                color="uclaBlue"
+                                size="md"
+                                type="submit"
+                                isLoading={isSaving}
+                                className="shadow-lg transform hover:scale-105 transition-transform"
+                            >
+                                Save Product
+                            </Button>
+                            <Button
+                                color="red"
+                                size="md"
+                                onClick={handleDelete}
+                                className="shadow-lg transform hover:scale-105 transition-transform"
+                            >
+                                Delete Product
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+            )}
         </div>
-
-        {formType === 'store' ? (
-            <div className="mb-8">
-                <form className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Store Name</label>
-                        <input
-                            type="text"
-                            className="w-full p-2 border rounded"
-                            value={storeForm.name}
-                            onChange={(e) =>
-                                setStoreForm((prev) => ({ ...prev, name: e.target.value }))
-                            }
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Image URL</label>
-                        <input
-                            type="text"
-                            className="w-full p-2 border rounded"
-                            value={storeForm.imageUrl}
-                            onChange={(e) =>
-                                setStoreForm((prev) => ({ ...prev, imageUrl: e.target.value }))
-                            }
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Introduction</label>
-                        <textarea
-                            className="w-full p-2 border rounded"
-                            value={storeForm.introduce}
-                            onChange={(e) =>
-                                setStoreForm((prev) => ({ ...prev, introduce: e.target.value }))
-                            }
-                            rows={4}
-                        />
-                    </div>
-                    <div className="flex justify-center">
-                        <Button
-                            color="uclaBlue"
-                            size="md"
-                            type="submit"
-                            isLoading={isSaving}
-                            className="shadow-lg transform hover:scale-105 transition-transform"
-                        >
-                            Add Store
-                        </Button>
-                    </div>
-                </form>
-            </div>
-        ) : (
-            <div className="mb-8">
-                <form className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Shop</label>
-                        <select
-                            className="w-full p-2 border rounded"
-                            value={selectedShop}
-                            onChange={(e) => handleShopChange(e.target.value)}
-                        >
-                            <option value="" disabled>
-                                Select a shop...
-                            </option>
-                            {shops?.map((shop) => (
-                                <option key={shop.id} value={shop.id}>
-                                    {shop.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Product</label>
-                        <input
-                            list="product-options"
-                            className="w-full p-2 border rounded"
-                            value={productForm.title}
-                            onChange={(e) => {
-                                handleFormChange('title', e.target.value);
-                            }}
-                            onSelect={(e) => {
-                                handleProductSelect((e.target as HTMLInputElement).value);
-                            }}
-                        />
-                        <datalist id="product-options">
-                            <option value="" label="Add a new product" />
-                            {products?.map((product) => (
-                                <option key={product.id} value={product.title}>
-                                    {product.title}
-                                </option>
-                            ))}
-                        </datalist>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1">
-                            Price ({currencySymbol})
-                        </label>
-                        <input
-                            type="number"
-                            className="w-full p-2 border rounded"
-                            value={productForm.price}
-                            onChange={(e) => handleFormChange('price', e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Country</label>
-                        <select
-                            className="w-full p-2 border rounded"
-                            value={productForm.address}
-                            onChange={(e) => handleFormChange('address', e.target.value)}
-                        >
-                            {countryOptions.map((country) => (
-                                <option key={country} value={country}>
-                                    {country}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Description</label>
-                        <textarea
-                            className="w-full p-2 border rounded"
-                            value={productForm.description}
-                            onChange={(e) => handleFormChange('description', e.target.value)}
-                            rows={4}
-                        />
-                    </div>
-                    <div className="flex items-center">
-                        <input
-                            type="text"
-                            className="w-full p-2 border rounded mr-2"
-                            placeholder="Image URL"
-                            value={productForm.newImageUrl}
-                            onChange={(e) => handleFormChange('newImageUrl', e.target.value)}
-                        />
-                        <Button
-                            color={
-                                isUrlValid === null
-                                    ? 'uclaBlue'
-                                    : isUrlValid
-                                    ? 'uclaGold'
-                                    : 'red'
-                            }
-                            size="md"
-                            onClick={handleAddImageUrl}
-                            type="button"
-                            className="shadow-lg transform hover:scale-105 transition-transform whitespace-nowrap"
-                        >
-                            Add Image URL
-                        </Button>
-                    </div>
-                    <div>
-                        <ul>
-                            {productForm.imageUrls?.map((url, index) => (
-                                <li key={index} className="break-words">
-                                    {url}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">
-                            <input
-                                type="checkbox"
-                                className="mr-2"
-                                checked={productForm.isChangable}
-                                onChange={(e) => handleFormChange('isChangable', e.target.checked)}
-                            />
-                            Can be returned
-                        </label>
-                        <label className="block text-sm font-medium mb-1">
-                            <input
-                                type="checkbox"
-                                className="mr-2"
-                                checked={productForm.isUsed}
-                                onChange={(e) => handleFormChange('isUsed', e.target.checked)}
-                            />
-                            Is used
-                        </label>
-                    </div>
-                    <div className="flex justify-between">
-                        <Button
-                            color="uclaBlue"
-                            size="md"
-                            type="submit"
-                            isLoading={isSaving}
-                            className="shadow-lg transform hover:scale-105 transition-transform"
-                        >
-                            Save Product
-                        </Button>
-                        <Button
-                            color="red"
-                            size="md"
-                            onClick={handleDelete}
-                            className="shadow-lg transform hover:scale-105 transition-transform"
-                        >
-                            Delete Product
-                        </Button>
-                    </div>
-                </form>
-            </div>
-        )}
-    </div>
-);
+    );
 }
