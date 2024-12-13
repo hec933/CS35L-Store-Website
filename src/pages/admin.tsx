@@ -2,17 +2,23 @@ import { useEffect, useState } from 'react';
 import { fetchWithAuthToken } from '@/utils/auth';
 import Container from '@/components/layout/Container';
 import Wrapper from '@/components/layout/Wrapper';
-import { AdminPortal } from '@/utils/adminPortal';
+import AdminPortal from '@/utils/adminPortal';
 import { RequestAccess } from '@/utils/requestAccess';
 
-//admin login page
 export default function AdminPage() {
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
     useEffect(() => {
         async function checkAdmin() {
             try {
-                const { role } = await fetchWithAuthToken('/api/user', 'POST');
+                const response = await fetchWithAuthToken('/api/user', 'POST');
+                if (!response || !response.user) throw new Error('Invalid response structure');
+
+		console.log(response.user);
+
+                const { role } = response.user;
+                if (!role) throw new Error('Role is undefined');
+                
                 setIsAdmin(role === 'WEB_ADMIN' || role === 'STORE_ADMIN');
             } catch (error) {
                 console.error('Error checking admin status:', error);

@@ -38,67 +38,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     switch (req.method) {
       case 'POST': {
-        const { fromPage = '0', toPage = '1', shopId, keyword } = req.body;
-        let query = 'SELECT id, name, image_url, introduce, created_at FROM shops WHERE 1=1';
-        const params: any[] = [];
-        let paramCount = 1;
+        const { action, name, imageUrl, introduce } = req.body;
 
-        if (shopId) {
-          query += ` AND id = $${paramCount}`;
-          params.push(shopId);
-          paramCount++;
+        if (action === 'add') {
+          if (!name || typeof name !== 'string') {
+            return res.status(400).json({ error: 'Shop name is required' });
+          }
+
+          const newShop = await pool.query(
+            `INSERT INTO shops (id, name, image_url, introduce, created_at)
+             VALUES (gen_random_uuid(), $1, $2, $3, NOW())
+             RETURNING id, name, image_url AS "imageUrl", introduce, created_at AS "createdAt"`,
+            [name, imageUrl || null, introduce || null]
+          );
+
+          if (newShop.rows.length === 0) {
+            throw new Error('Failed to insert shop');
+          }
+
+          return res.status(201).json({ data: newShop.rows[0] });
         }
 
-        if (keyword) {
-          query += ` AND (name ILIKE $${paramCount})`;
-          params.push(`%${keyword}%`);
-          paramCount++;
+        if (action === 'fetchAll') {
+          const result = await pool.query(
+            `SELECT id, name, image_url AS "imageUrl", introduce, created_at AS "createdAt"
+             FROM shops ORDER BY created_at DESC`
+          );
+          return res.status(200).json({ data: result.rows });
         }
 
-        const pageSize = 10;
-        const offset = parseInt(fromPage) * pageSize;
-        const limit = (parseInt(toPage) - parseInt(fromPage)) * pageSize;
-
-        query += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-        params.push(limit, offset);
-
-        const result = await pool.query(query, params);
-        return res.json({ 
-          data: result.rows.map(row => ({
-            id: row.id,
-            name: row.name,
-            imageUrl: row.image_url,
-            introduce: row.introduce,
-            createdAt: row.created_at
-          }))
-        });
-      }
-
-      case 'DELETE': {
-        const { shopId } = req.query;
-        if (!shopId) {
-          return res.status(400).json({ error: 'Shop ID required' });
-        }
-
-        const permissionCheck = await pool.query(
-          'SELECT * FROM store_permissions WHERE user_id = $1 AND shop_id = $2',
-          [userId, shopId]
-        );
-
-        if (permissionCheck.rows.length === 0) {
-          return res.status(403).json({ error: 'Not authorized to delete this shop' });
-        }
-
-        await pool.query('DELETE FROM shops WHERE id = $1', [shopId]);
-        return res.json({ message: 'Shop deleted successfully' });
+        return res.status(400).json({ error: 'Invalid action' });
       }
 
       default:
-        res.setHeader('Allow', ['POST', 'DELETE']);
-        return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+        res.setHeader('Allow', ['POST']);
+        return res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
   } catch (error) {
     console.error('Error in shops handler:', error);
-    return res.status(500).json({ error: 'Failed to process request' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }

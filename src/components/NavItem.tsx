@@ -1,31 +1,38 @@
-import Link from 'next/link';
+import Link from 'next/link'
+import { User } from 'firebase/auth'
 
-type NavItemProps = {
-    mobile?: boolean;
-    handleAuth: () => void;
-    user: any; // Replace `any` with a specific type if available
-};
+interface NavItemProps {
+    mobile?: boolean
+    handleAuth: () => void
+    userName: string | null
+}
 
-const NavItem = ({ mobile, handleAuth, user }: NavItemProps) => {
+const NavItem = ({ mobile, handleAuth, userName }: NavItemProps) => {
+    const commonClasses = "flex items-center space-x-4"
+    const mobileClasses = mobile ? "flex-col space-y-4 pb-4 pt-2" : ""
+
     return (
-        <ul
-            className={`text-md justify-center flex gap-4 w-full item-center mr-14 ${
-                mobile ? 'flex-col h-full' : ''
-            }`}
-        >
-            <li className="py-2 text-center cursor-pointer">
-                <Link href="/user">User</Link>
-            </li>
-            <li className="py-2 text-center cursor-pointer">
-                <Link href="/cart">Cart</Link>
-            </li>
-            <li className="py-2 text-center cursor-pointer">
-                <button onClick={handleAuth}>
-                    {user ? 'Sign Out' : 'Login'}
+        <div className={`${commonClasses} ${mobileClasses}`}>
+            {userName ? (
+                <>
+                    <span>Welcome, {userName}!</span>
+                    <button
+                        onClick={handleAuth}
+                        className="hover:text-blue-300 transition-colors"
+                    >
+                        Sign Out
+                    </button>
+                </>
+            ) : (
+                <button
+                    onClick={handleAuth}
+                    className="hover:text-blue-300 transition-colors"
+                >
+                    Sign In
                 </button>
-            </li>
-        </ul>
-    );
-};
+            )}
+        </div>
+    )
+}
 
-export default NavItem;
+export default NavItem

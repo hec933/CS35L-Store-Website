@@ -28,6 +28,7 @@ export type Product = {
   createdAt: string;
   createdBy: string;
   purchaseBy: string | null;
+  address: string;
 };
 
 export type Like = {
@@ -46,11 +47,21 @@ export type Review = {
   createdAt: string;
 };
 
-export type StoreAdmin = {
+export type Follower = {
+  id: string;
+  shopId: string;
+  userId: string;
+  createdAt: string;
+};
+
+export type User = {
   id: string;
   name: string;
   email: string;
-  role: AdminRole;
+  profileImageUrl: string | null;
+  role: 'REGULAR' | 'STORE_ADMIN' | 'WEB_ADMIN';
+  authorizedStores?: string[];
+  createdAt: string;
 };
 
 export type StorePermission = {
