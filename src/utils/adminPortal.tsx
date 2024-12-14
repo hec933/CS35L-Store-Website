@@ -176,7 +176,37 @@ export default function AdminPortal() {
                         setProducts(updatedProducts.data);
                     }
                 }
+            } else if (formType === 'store') {
+	    setIsSaving(true);
+	      console.log('Submitting store:', storeForm);
+	              const payload = {
+            	      action: 'add',
+		                  ...storeForm
+			        };
+
+        const response = await fetchWithAuthToken('/api/shops', 'POST', payload);
+        console.log('Server response:', response);
+
+        if (response?.data) {
+            alert('Store saved!');
+            
+            // Refresh store list
+            const { data } = await fetchWithAuthToken('/api/shops', 'POST', {
+                action: 'fetchAll',
+            });
+            if (data) {
+                setShops(data);
             }
+
+            // Clear form
+            setStoreForm({
+                name: '',
+                imageUrl: '',
+                introduce: '',
+            });
+            setHasUnsavedChanges(false);
+
+	    }
         } catch (error) {
             console.error('Error saving:', error);
             alert('Failed to save. Please try again.');
@@ -184,6 +214,15 @@ export default function AdminPortal() {
             setIsSaving(false);
         }
     };
+
+    const handleStoreFormChange = (field: keyof typeof storeForm, value: string) => {
+    setStoreForm(prev => {
+        const updatedForm = { ...prev, [field]: value };
+        setHasUnsavedChanges(true);
+        return updatedForm;
+    });
+};
+
 
     const handleFormChange = (field: keyof typeof productForm, value: any) => {
         setProductForm((prev) => {
@@ -377,16 +416,52 @@ export default function AdminPortal() {
 return (
         <div className="py-12 px-6">
             <div className="pt-8">
-                <div className="flex justify-center mb-6">
-                    <Button
-                        color="uclaBlue"
-                        size="md"
-                        className="shadow-lg transform hover:scale-105 transition-transform"
-                        onClick={() => setFormType(formType === 'product' ? 'store' : 'product')}
-                    >
-                        {formType === 'product' ? 'Switch to Store Form' : 'Switch to Product Form'}
-                    </Button>
-                </div>
+
+{adminInfo?.role === 'WEB_ADMIN' && (
+    <div className="flex justify-center mb-6">
+        <Button
+            color="uclaBlue"
+            size="md"
+            className="shadow-lg transform hover:scale-105 transition-transform"
+            onClick={() => {
+                if (hasUnsavedChanges) {
+                    const confirmDiscard = confirm(
+                        'You have unsaved changes. Are you sure you want to switch forms and discard them?'
+                    );
+                    if (!confirmDiscard) return;
+                }
+                setFormType(formType === 'product' ? 'store' : 'product');
+                // Clear form when switching
+                if (formType === 'product') {
+                    setStoreForm({
+                        name: '',
+                        imageUrl: '',
+                        introduce: '',
+                    });
+                } else {
+                    const initialForm = {
+                        title: '',
+                        price: '',
+                        address: 'United States',
+                        description: '',
+                        imageUrls: [],
+                        newImageUrl: '',
+                        isChangable: true,
+                        isUsed: false,
+                        tags: [''],
+                    };
+                    setProductForm(initialForm);
+                    baselineFormRef.current = initialForm;
+                }
+                setHasUnsavedChanges(false);
+                isInitialSelection.current = true;
+            }}
+        >
+            {formType === 'product' ? 'Edit Stores' : 'Back to Products'}
+        </Button>
+    </div>
+)}
+
             </div>
 
             {formType === 'store' ? (
@@ -398,9 +473,7 @@ return (
                                 type="text"
                                 className="w-full p-2 border rounded"
                                 value={storeForm.name}
-                                onChange={(e) =>
-                                    setStoreForm((prev) => ({ ...prev, name: e.target.value }))
-                                }
+                                onChange={(e) => handleStoreFormChange('name', e.target.value)}
                                 required
                             />
                         </div>
@@ -410,9 +483,7 @@ return (
                                 type="text"
                                 className="w-full p-2 border rounded"
                                 value={storeForm.imageUrl}
-                                onChange={(e) =>
-                                    setStoreForm((prev) => ({ ...prev, imageUrl: e.target.value }))
-                                }
+                                onChange={(e) => handleStoreFormChange('imageUrl', e.target.value)}
                             />
                         </div>
                         <div>
@@ -420,9 +491,7 @@ return (
                             <textarea
                                 className="w-full p-2 border rounded"
                                 value={storeForm.introduce}
-                                onChange={(e) =>
-                                    setStoreForm((prev) => ({ ...prev, introduce: e.target.value }))
-                                }
+                                onChange={(e) => handleStoreFormChange('introduce', e.target.value)}
                                 rows={4}
                             />
                         </div>
