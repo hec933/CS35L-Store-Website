@@ -14,6 +14,7 @@ export default function AdminPortal() {
     const [adminInfo, setAdminInfo] = useState<AdminInfo | null>(null);
     const [formType, setFormType] = useState<'product' | 'store'>('product');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [storeForm, setStoreForm] = useState({
         name: '',
         imageUrl: '',
@@ -49,6 +50,18 @@ export default function AdminPortal() {
 
     const baselineFormRef = useRef(productForm);
     const isInitialSelection = useRef(true);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (isDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isDropdownOpen]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -108,6 +121,7 @@ export default function AdminPortal() {
                 if (!response || !response.data) {
                     throw new Error('No products found for the selected store.');
                 }
+                console.log('Fetched products:', response.data);
                 setProducts(response.data);
             } catch (error) {
                 console.error('Error fetching products:', error);
@@ -117,21 +131,75 @@ export default function AdminPortal() {
         fetchProducts();
     }, [selectedShop]);
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log('Form submitted');
+        setIsSaving(true);
+
+        try {
+            if (formType === 'product') {
+                console.log('Submitting product:', {
+                    selectedShop,
+                    title: productForm.title,
+                    price: productForm.price
+                });
+
+                const payload = {
+                    action: 'add',
+                    shopId: selectedShop,
+                    title: productForm.title,
+                    price: parseFloat(productForm.price),
+                    address: productForm.address,
+                    description: productForm.description,
+                    imageUrls: productForm.imageUrls,
+                    isChangable: productForm.isChangable,
+                    isUsed: productForm.isUsed,
+                    tags: productForm.tags,
+                };
+
+                const response = await fetchWithAuthToken('/api/products', 'POST', payload);
+                console.log('Server response:', response);
+
+                if (response?.data) {
+                    alert('Product saved!');
+                    
+                    // Update baseline to reflect saved state
+                    baselineFormRef.current = { ...productForm };
+                    setHasUnsavedChanges(false);
+
+                    // Refresh product list
+                    const updatedProducts = await fetchWithAuthToken('/api/products', 'POST', {
+                        action: 'fetch',
+                        shopId: selectedShop,
+                    });
+                    if (updatedProducts?.data) {
+                        setProducts(updatedProducts.data);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error saving:', error);
+            alert('Failed to save. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleFormChange = (field: keyof typeof productForm, value: any) => {
         setProductForm((prev) => {
             const updatedForm = { ...prev, [field]: value };
             
+            // Only check for changes if we're not in initial selection mode
             if (!isInitialSelection.current) {
-                const hasChanges = Object.keys(updatedForm).some(
-                    (key) => {
-                        if (Array.isArray(updatedForm[key as keyof typeof productForm])) {
-                            return JSON.stringify(updatedForm[key as keyof typeof productForm]) !==
-                                   JSON.stringify(baselineFormRef.current[key as keyof typeof productForm]);
-                        }
-                        return updatedForm[key as keyof typeof productForm] !==
-                               baselineFormRef.current[key as keyof typeof productForm];
+                const hasChanges = Object.keys(updatedForm).some(key => {
+                    const currentVal = updatedForm[key as keyof typeof productForm];
+                    const baselineVal = baselineFormRef.current[key as keyof typeof productForm];
+                    
+                    if (Array.isArray(currentVal)) {
+                        return JSON.stringify(currentVal) !== JSON.stringify(baselineVal);
                     }
-                );
+                    return currentVal !== baselineVal;
+                });
                 setHasUnsavedChanges(hasChanges);
             }
             
@@ -140,44 +208,65 @@ export default function AdminPortal() {
     };
 
     const handleShopChange = (shopId: string) => {
+        // Only check for changes if they've actually modified something
         if (hasUnsavedChanges) {
             const confirmDiscard = confirm(
-                'You have unsaved changes. Do you want to discard them?'
+                'You have unsaved changes. Are you sure you want to switch stores and discard them?'
             );
             if (!confirmDiscard) return;
         }
+
         setSelectedShop(shopId);
+        setSelectedProduct('');
+        // Reset form to initial state
+        const initialForm = {
+            title: '',
+            price: '',
+            address: 'United States',
+            description: '',
+            imageUrls: [],
+            newImageUrl: '',
+            isChangable: true,
+            isUsed: false,
+            tags: [''],
+        };
+        setProductForm(initialForm);
+        baselineFormRef.current = initialForm;
         setHasUnsavedChanges(false);
         isInitialSelection.current = true;
     };
 
-    const handleProductSelect = (inputValue: string) => {
-        const selected = products.find(p => p.title === inputValue);
-        if (!selected) return;
+    const handleProductSelect = (product: Product) => {
+        console.log('Selecting product:', product);
+        
+        if (!product) return;
 
-        if (hasUnsavedChanges && !isInitialSelection.current) {
+        // Only show alert if there are actual changes to current data
+        if (hasUnsavedChanges) {
             const confirmDiscard = confirm(
-                'You have unsaved changes. Do you want to discard them?'
+                'You have unsaved changes. Are you sure you want to switch products and discard them?'
             );
             if (!confirmDiscard) return;
         }
 
         const newProductForm = {
-            title: selected.title,
-            price: selected.price.toString(),
-            address: selected.address,
-            description: selected.description,
-            imageUrls: selected.imageUrls || [],
+            title: product.title,
+            price: product.price.toString(),
+            address: product.address,
+            description: product.description,
+            imageUrls: product.imageUrls || [],
             newImageUrl: '',
-            isChangable: selected.isChangable,
-            isUsed: selected.isUsed,
-            tags: selected.tags || [''],
+            isChangable: product.isChangable,
+            isUsed: product.isUsed,
+            tags: product.tags || [''],
         };
 
         setProductForm(newProductForm);
-        baselineFormRef.current = newProductForm;
-        setSelectedProduct(selected.id);
+        baselineFormRef.current = newProductForm;  // Set the baseline to compare against
+        setSelectedProduct(product.id);
+        setHasUnsavedChanges(false);  // Reset changes flag
         isInitialSelection.current = false;
+        setIsDropdownOpen(false);
     };
 
     const handleAddImageUrl = async () => {
@@ -197,31 +286,6 @@ export default function AdminPortal() {
             alert('Failed to validate URL');
         }
     };
-
-    const countryOptions = [
-        '...',
-        'Australia',
-        'Canada',
-        'China',
-        'Europe',
-        'Japan',
-        'Mexico',
-        'Russia',
-        'United States',
-    ];
-
-    const currencyMap: Record<string, string> = {
-        'United States': '$',
-        Canada: 'C$',
-        Mexico: 'MX$',
-        Europe: '€',
-        China: '¥',
-        Japan: '¥',
-        Australia: 'A$',
-        Russia: '₽',
-    };
-
-    const currencySymbol = currencyMap[productForm.address] || '$';
 
     const handleDelete = async () => {
         if (formType === 'store') {
@@ -260,6 +324,22 @@ export default function AdminPortal() {
                 alert('Product deleted successfully!');
                 setProducts((prev) => prev.filter((product) => product.id !== selectedProduct));
                 setSelectedProduct('');
+                // Reset form after successful delete
+                const initialForm = {
+                    title: '',
+                    price: '',
+                    address: 'United States',
+                    description: '',
+                    imageUrls: [],
+                    newImageUrl: '',
+                    isChangable: true,
+                    isUsed: false,
+                    tags: [''],
+                };
+                setProductForm(initialForm);
+                baselineFormRef.current = initialForm;
+                setHasUnsavedChanges(false);
+                isInitialSelection.current = true;
             } catch (error) {
                 console.error('Error deleting product:', error);
                 alert('Failed to delete product');
@@ -269,7 +349,32 @@ export default function AdminPortal() {
         }
     };
 
-    return (
+    const countryOptions = [
+        '...',
+        'Australia',
+        'Canada',
+        'China',
+        'Europe',
+        'Japan',
+        'Mexico',
+        'Russia',
+        'United States',
+    ];
+
+    const currencyMap: Record<string, string> = {
+        'United States': '$',
+        Canada: 'C$',
+        Mexico: 'MX$',
+        Europe: '€',
+        China: '¥',
+        Japan: '¥',
+        Australia: 'A$',
+        Russia: '₽',
+    };
+
+    const currencySymbol = currencyMap[productForm.address] || '$';
+
+return (
         <div className="py-12 px-6">
             <div className="pt-8">
                 <div className="flex justify-center mb-6">
@@ -286,7 +391,7 @@ export default function AdminPortal() {
 
             {formType === 'store' ? (
                 <div className="mb-8">
-                    <form className="space-y-4">
+                    <form className="space-y-4" onSubmit={handleSubmit}>
                         <div>
                             <label className="block text-sm font-medium mb-1">Store Name</label>
                             <input
@@ -336,13 +441,14 @@ export default function AdminPortal() {
                 </div>
             ) : (
                 <div className="mb-8">
-                    <form className="space-y-4">
+                    <form className="space-y-4" onSubmit={handleSubmit}>
                         <div>
                             <label className="block text-sm font-medium mb-1">Shop</label>
                             <select
                                 className="w-full p-2 border rounded"
                                 value={selectedShop}
                                 onChange={(e) => handleShopChange(e.target.value)}
+                                required
                             >
                                 <option value="" disabled>
                                     Select a shop...
@@ -357,25 +463,32 @@ export default function AdminPortal() {
 
                         <div>
                             <label className="block text-sm font-medium mb-1">Product</label>
-                            <input
-                                list="product-options"
-                                className="w-full p-2 border rounded"
-                                value={productForm.title}
-                                onChange={(e) => {
-                                    handleFormChange('title', e.target.value);
-                                }}
-                                onSelect={(e) => {
-                                    handleProductSelect((e.target as HTMLInputElement).value);
-                                }}
-                            />
-                            <datalist id="product-options">
-                                <option value="" label="Add a new product" />
-                                {products?.map((product) => (
-                                    <option key={product.id} value={product.title}>
-                                        {product.title}
-                                    </option>
-                                ))}
-                            </datalist>
+                            <div className="relative" ref={dropdownRef}>
+                                <input
+                                    type="text"
+                                    className="w-full p-2 border rounded"
+                                    value={productForm.title}
+                                    onChange={(e) => {
+                                        handleFormChange('title', e.target.value);
+                                        setIsDropdownOpen(true);
+                                    }}
+                                    onFocus={() => setIsDropdownOpen(true)}
+                                    required
+                                />
+                                {isDropdownOpen && products.length > 0 && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                                        {products.map((product) => (
+                                            <div
+                                                key={product.id}
+                                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                                onClick={() => handleProductSelect(product)}
+                                            >
+                                                {product.title}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div>
@@ -411,6 +524,7 @@ export default function AdminPortal() {
                                 value={productForm.description}
                                 onChange={(e) => handleFormChange('description', e.target.value)}
                                 rows={4}
+                                required
                             />
                         </div>
                         <div className="flex items-center">

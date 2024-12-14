@@ -4,6 +4,7 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
 if (!getApps().length) {
+    console.log('Initializing Firebase Admin SDK');
     initializeApp({
         credential: cert({
             projectId: "handy35l",
@@ -23,61 +24,91 @@ const pool = new Pool({
 });
 
 async function verifyAuth(req: NextApiRequest) {
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) {
-    throw new Error('No token provided');
-  }
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    console.log('Verifying token...');
+    if (!token) {
+        console.error('No token provided in request');
+        throw new Error('No token provided');
+    }
 
-  const decodedToken = await adminAuth.verifyIdToken(token);
-  const { uid } = decodedToken;
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    console.log('Token verified, UID:', decodedToken.uid);
 
-  const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [uid]);
-  if (userResult.rows.length === 0) {
-    throw new Error('User not found');
-  }
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [decodedToken.uid]);
+    if (userResult.rows.length === 0) {
+        console.error('User not found for UID:', decodedToken.uid);
+        throw new Error('User not found');
+    }
 
-  return userResult.rows[0];
+    console.log('User found:', userResult.rows[0]);
+    return userResult.rows[0];
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    console.log('=== Product API Request ===');
+    console.log('Method:', req.method);
+    console.log('Action:', req.body.action);
+
     const user = await verifyAuth(req);
+    console.log('Verified user:', user.id, user.role);
 
     if (req.method === 'POST') {
       const { action } = req.body;
 
-      if (action === 'add') {
-        const {
-          shopId,
-          title,
-          price,
-          address,
-          description,
-          imageUrls,
-          isChangable,
-          isUsed,
-          tags,
-        } = req.body;
+     if (action === 'add') {
+    const {
+        shopId,
+        title,
+        price,
+        address,
+        description,
+        imageUrls,
+        isChangable,
+        isUsed,
+        tags,
+    } = req.body;
 
-        if (!shopId) {
-          return res.status(400).json({ error: 'Shop ID is required' });
-        }
+    console.log('Adding/updating product:', {
+        shopId,
+        title,
+        price,
+        address
+    });
 
-        const isWebAdmin = user.role === 'WEB_ADMIN';
-        const hasStorePermission = await pool.query(
-          'SELECT * FROM store_permissions WHERE user_id = $1 AND shop_id = $2',
-          [user.id, shopId]
-        );
+    if (!shopId) {
+        console.log('Error: Missing shop ID');
+        return res.status(400).json({ error: 'Shop ID is required' });
+    }
 
-        if (!isWebAdmin && hasStorePermission.rows.length === 0) {
-          return res.status(403).json({ error: 'User not authorized for this shop' });
-        }
+    const isWebAdmin = user.role === 'WEB_ADMIN';
+    const hasStorePermission = await pool.query(
+        'SELECT * FROM store_permissions WHERE user_id = $1 AND shop_id = $2',
+        [user.id, shopId]
+    );
 
-        const productId = `prod_${Date.now()}`;
-        await pool.query(
-          `INSERT INTO products (id, shop_id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          [
+    console.log('Permission check:', {
+        isWebAdmin,
+        hasPermission: hasStorePermission.rows.length > 0
+    });
+
+    if (!isWebAdmin && hasStorePermission.rows.length === 0) {
+        console.log('Error: User not authorized');
+        return res.status(403).json({ error: 'User not authorized for this shop' });
+    }
+
+    // Delete existing product with same title in this shop if it exists
+    await pool.query(
+        'DELETE FROM products WHERE shop_id = $1 AND title = $2',
+        [shopId, title]
+    );
+
+    // Insert the new/updated product
+    const productId = `prod_${Date.now()}`;
+    await pool.query(
+        `INSERT INTO products (id, shop_id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
             productId,
             shopId,
             title,
@@ -89,16 +120,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             isUsed,
             tags,
             user.id,
-          ]
-        );
+        ]
+    );
 
-        return res.json({ message: 'Product added successfully', data: { id: productId, title } });
-      }
+    console.log('Product saved successfully:', productId);
+    return res.json({ message: 'Product saved successfully', data: { id: productId, title } });
+}
 
       if (action === 'fetch') {
         const { shopId } = req.body;
+        console.log('Fetching products for shop:', shopId);
 
         if (!shopId) {
+          console.log('Error: Missing shop ID');
           return res.status(400).json({ error: 'Shop ID is required' });
         }
 
@@ -109,6 +143,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
 
         if (!isWebAdmin && hasStorePermission.rows.length === 0) {
+          console.log('Error: User not authorized');
           return res.status(403).json({ error: 'User not authorized for this shop' });
         }
 
@@ -117,12 +152,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           [shopId]
         );
 
+        console.log(`Found ${products.rows.length} products`);
         return res.json({ data: products.rows });
       }
 
+      console.log('Error: Invalid action:', action);
       return res.status(400).json({ error: 'Invalid action' });
     }
 
+    console.log('Error: Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Error in products handler:', error instanceof Error ? error.message : error);
