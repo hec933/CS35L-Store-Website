@@ -2,6 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { Pool } from 'pg';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+dayjs.extend(relativeTime).locale("en");
 
 if (!getApps().length) {
     console.log('Initializing Firebase Admin SDK');
@@ -57,26 +61,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { action } = req.body;
 
      if (action === 'add') {
-    const {
-        shopId,
+       
+       const {
+        shop_id,
         title,
         price,
         address,
         description,
-        imageUrls,
-        isChangable,
-        isUsed,
+        image_urls,
+        is_changable,
+        is_used,
         tags,
+	purchase_by,
+	quantity
     } = req.body;
 
+    const created_at = dayjs().format('YYYY-MM-DD HH:mm:ss')
+
     console.log('Adding/updating product:', {
-        shopId,
+        shop_id,
         title,
         price,
-        address
+        address,
+	created_at
     });
 
-    if (!shopId) {
+    if (!shop_id) {
         console.log('Error: Missing shop ID');
         return res.status(400).json({ error: 'Shop ID is required' });
     }
@@ -84,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const isWebAdmin = user.role === 'WEB_ADMIN';
     const hasStorePermission = await pool.query(
         'SELECT * FROM store_permissions WHERE user_id = $1 AND shop_id = $2',
-        [user.id, shopId]
+        [user.id, shop_id]
     );
 
     console.log('Permission check:', {
@@ -97,49 +107,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(403).json({ error: 'User not authorized for this shop' });
     }
 
-    // Delete existing product with same title in this shop if it exists
     await pool.query(
         'DELETE FROM products WHERE shop_id = $1 AND title = $2',
-        [shopId, title]
+        [shop_id, title]
     );
 
-    // Insert the new/updated product
-    const productId = `prod_${Date.now()}`;
+    const id = `prod_${Date.now()}`;
+    const created_by = `${user.id}`
     await pool.query(
-        `INSERT INTO products (id, shop_id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        `INSERT INTO products (id, shop_id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by, created_at, quantity)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
-            productId,
-            shopId,
+            id,
+            shop_id,
             title,
             price,
             address,
             description,
-            imageUrls,
-            isChangable,
-            isUsed,
+            image_urls,
+            is_changable,
+            is_used,
             tags,
-            user.id,
+            created_by,
+	    created_at,
+	    quantity
         ]
     );
 
-    console.log('Product saved successfully:', productId);
-    return res.json({ message: 'Product saved successfully', data: { id: productId, title } });
+    console.log('Product saved successfully:', id);
+    return res.json({ message: 'Product saved successfully', data: { id: id, title } });
 }
 
-      if (action === 'fetch') {
-        const { shopId } = req.body;
-        console.log('Fetching products for shop:', shopId);
+      if ((action === 'fetchShop') || (action === 'fetch')) {
+        const { shop_id } = req.body;
+        console.log('Fetching products for shop:', shop_id);
 
-        if (!shopId) {
+        if (!shop_id) {
           console.log('Error: Missing shop ID');
           return res.status(400).json({ error: 'Shop ID is required' });
         }
 
         const isWebAdmin = user.role === 'WEB_ADMIN';
         const hasStorePermission = await pool.query(
-          'SELECT * FROM store_permissions WHERE user_id = $1 AND shop_id = $2',
-          [user.id, shopId]
+          'SELECT * FROM store_permissions WHERE id = $1 AND shop_id = $2',
+          [user.id, shop_id]
         );
 
         if (!isWebAdmin && hasStorePermission.rows.length === 0) {
@@ -148,18 +159,68 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const products = await pool.query(
-          'SELECT id, title, price, address, description, image_urls, is_changable, is_used, tags FROM products WHERE shop_id = $1',
-          [shopId]
+          'SELECT id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by, created_at, quantity FROM products WHERE shop_id = $1',
+          [shop_id]
         );
 
         console.log(`Found ${products.rows.length} products`);
         return res.json({ data: products.rows });
       }
 
+      if (action === 'mostLiked') {
+      	const mostLiked = await pool.query(
+	  'SELECT * FROM mostliked_products'
+	);
+
+	console.log(`Found ${mostLiked.rows.length} Top 10 products`);
+	return res.json({ data: mostLiked.rows });
+      }
+
+      if (action === 'fetchAll') {
+      	 const {
+	       fromPage,
+	       toPage,
+      	 } = req.body;
+	 const products = await pool.query(
+          'SELECT id, shop_id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by, created_at, quantity FROM products ORDER BY id LIMIT 10 * ($2 - $1 +1) OFFSET 10 * $1',
+          [fromPage, toPage]
+        );
+	console.log(`Found ${products.rows.length} products for page:${fromPage} to page:${toPage}`);
+	return res.json({ data: products.rows });
+      }
+      if (action === 'fetchKeyword'){
+        const { keyword } = req.body;
+	const products = await pool.query(
+  	      `SELECT id, shop_id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by, created_at, quantity FROM products
+   	       WHERE to_tsvector(description) @@ plainto_tsquery($1)`,
+   	       [keyword]
+	);
+	console.log(`Found ${products.rows.length} products for keyword:${keyword}`);
+	return res.json({ data: products.rows });
+      }
+      if (action === 'fetchTag'){
+        const { tag } = req.body;
+	const products = await pool.query(
+  	      `SELECT id, shop_id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by, created_at, quantity FROM products
+   	       WHERE to_tsvector(tags) @@ plainto_tsquery($1)`,
+   	       [tag]
+	);
+	console.log(`Found ${products.rows.length} products for tag:${tag}`);
+	return res.json({ data: products.rows });
+      }
+      if (action === 'fetchProduct'){
+      	const { id } = req.body;
+	const products = await pool.query(
+  	      `SELECT id, shop id, title, price, address, description, image_urls, is_changable, is_used, tags, created_by, created_at, quantity FROM products
+   	       WHERE id = $1`,
+   	       [id]
+	);
+	console.log(`Found product with ID:${id}`);
+	return res.json({ data: products.rows });
+      }
       console.log('Error: Invalid action:', action);
       return res.status(400).json({ error: 'Invalid action' });
     }
-
     console.log('Error: Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {

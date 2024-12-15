@@ -107,7 +107,7 @@ export default function ProductDetail({
       <Container>
         <div className="flex gap-6 my-6">
           <div className="w-96 h-96 shrink-0">
-            <ProductImage imageUrls={product.imageUrls} />
+            <ProductImage imageUrls={product.image_urls} />
           </div>
           <div className="flex flex-col justify-between flex-1">
             <div>
@@ -116,7 +116,7 @@ export default function ProductDetail({
                 <Text size="2xl">$</Text>
                 <Text size="3xl">{product.price.toLocaleString()}</Text>
               </div>
-              <Text color="uclaBlue">{dayjs(product.createdAt).fromNow()}</Text>
+              <Text color="uclaBlue">{dayjs(product.created_at).fromNow()}</Text>
             </div>
             <div className="flex gap-4">
               <Button onClick={handleToggleLike}>

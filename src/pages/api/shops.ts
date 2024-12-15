@@ -24,28 +24,48 @@ const pool = new Pool({
 });
 
 async function verifyAuth(req: NextApiRequest) {
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) {
-    throw new Error('No token provided');
-  }
-  return await adminAuth.verifyIdToken(token);
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    console.log('Verifying token...');
+    if (!token) {
+        console.error('No token provided in request');
+        throw new Error('No token provided');
+    }
+
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    console.log('Token verified, UID:', decodedToken.uid);
+
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [decodedToken.uid]);
+    if (userResult.rows.length === 0) {
+        console.error('User not found for UID:', decodedToken.uid);
+        throw new Error('User not found');
+    }
+
+    console.log('User found:', userResult.rows[0]);
+    return userResult.rows[0];
 }
+
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const decodedToken = await verifyAuth(req);
-    const userId = decodedToken.uid;
+    const user = await verifyAuth(req);
+    console.log('Verified the user:', user.id, user.role);
 
     switch (req.method) {
       case 'POST': {
+      
         const { action, name, imageUrl, introduce } = req.body;
-
+	
         if (action === 'add') {
           if (!name || typeof name !== 'string') {
             return res.status(400).json({ error: 'Shop name is required' });
           }
-
-          const newShop = await pool.query(
+	  
+	  if (!(user.role === "WEB_ADMIN")) {
+       	     	return res.status(400).json({ error: 'User is not a web admin'});
+    	  }
+	  
+	  const newShop = await pool.query(
             `INSERT INTO shops (id, name, image_url, introduce, created_at)
              VALUES (gen_random_uuid(), $1, $2, $3, NOW())
              RETURNING id, name, image_url AS "imageUrl", introduce, created_at AS "createdAt"`,
@@ -70,8 +90,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Invalid action' });
       }
 
-      default:
-        res.setHeader('Allow', ['POST']);
+   case 'DELETE': {
+   	if (!user.role) {
+	     	return res.status(400).json({ error: 'User has no role'});
+    	}
+   	if (!(user.role === "WEB_ADMIN")) {
+       	     	return res.status(400).json({ error: 'User is not a web admin'});
+    	}
+	if (user.role === "WEB_ADMIN") {
+	   const result = await pool.query(
+	   	`DELETE FROM shops WHERE id = $1`);
+	   if (result.rows.length === 0) {
+	        return res.status(400).json({ error: 'Shop did not exist in database'});
+		}
+	   else {
+		return res.status(200).json({ data: result.rows });
+	   }
+	}	  
+   }
+
+   default:
+        res.setHeader('Allow', ['POST', 'DELETE']);
         return res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
   } catch (error) {

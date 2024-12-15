@@ -111,7 +111,7 @@ const Search = ({
           {products.length === 0 ? (
             <Text>No search results found.</Text>
           ) : (
-            products.map(({ id, title, price, createdAt, imageUrls }) => (
+            products.map(({ id, title, price, created_at, image_urls, quantity }) => (
               <Link
                 key={id}
                 className="rounded-lg overflow-hidden border"
@@ -120,8 +120,9 @@ const Search = ({
                 <Product
                   title={title}
                   price={price}
-                  createdAt={createdAt}
-                  imageUrl={imageUrls[0]}
+                  created_at={created_at}
+                  image_url={image_urls[0]}
+		  quantity={quantity}
                 />
               </Link>
             ))

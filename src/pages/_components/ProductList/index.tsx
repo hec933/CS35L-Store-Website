@@ -7,7 +7,7 @@ import { fetchWithAuthToken } from '@/utils/auth';
 import { Product as TProduct } from '@/types';
 
 type Props = {
-  initialProducts: TProduct[] | null | undefined; // Allow null or undefined for safety
+  initialProducts: TProduct[] | null | undefined;
 };
 
 export default function ProductList({ initialProducts = [] }: Props) {
@@ -22,11 +22,11 @@ export default function ProductList({ initialProducts = [] }: Props) {
       try {
         setIsLoading(true);
         const response = await fetchWithAuthToken('/api/products', 'POST', {
-          fromPage,
+          action: 'fetchAll',
+	  fromPage, 
           toPage,
         });
-
-        const { data }: { data: TProduct[] } = await response.json();
+        const { data }: { data: TProduct[] } = response;
         setProducts((prevProducts) => {
           const updatedProducts = [...prevProducts, ...data];
           return updatedProducts.slice(0, MAX_ITEMS);
@@ -59,11 +59,13 @@ export default function ProductList({ initialProducts = [] }: Props) {
     }
   }, [inView, isLastPage, isLoading, products.length, handleGetProducts]);
 
+  useEffect(() => { console.log('Products', products); }, [products]);
+
   return (
     <div className="my-8">
       {products.length ? (
         <div className="grid grid-cols-5 gap-4">
-          {products.map(({ id, title, price, imageUrls, createdAt }) => (
+          {products.map(({ id, title, price, image_urls, created_at, quantity }) => (
             <Link
               key={id}
               className="rounded-lg overflow-hidden border"
@@ -72,8 +74,9 @@ export default function ProductList({ initialProducts = [] }: Props) {
               <Product
                 title={title}
                 price={price}
-                imageUrl={imageUrls[0]}
-                createdAt={createdAt}
+                image_url={image_urls[0] || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgEB/krH/aQAAAAASUVORK5CYII='}
+		created_at={created_at}
+		quantity={quantity}
               />
             </Link>
           ))}

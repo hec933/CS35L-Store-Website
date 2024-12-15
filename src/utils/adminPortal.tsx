@@ -15,6 +15,7 @@ export default function AdminPortal() {
     const [formType, setFormType] = useState<'product' | 'store'>('product');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isImageUrlDropdownOpen, setIsImageUrlDropdownOpen] = useState(false);
     const [storeForm, setStoreForm] = useState({
         name: '',
         imageUrl: '',
@@ -29,6 +30,7 @@ export default function AdminPortal() {
         newImageUrl: string;
         isChangable: boolean;
         isUsed: boolean;
+	quantity: number;
         tags: string[];
     }>({
         title: '',
@@ -39,6 +41,7 @@ export default function AdminPortal() {
         newImageUrl: '',
         isChangable: true,
         isUsed: false,
+	quantity: 0,
         tags: [''],
     });
     const [isSaving, setIsSaving] = useState(false);
@@ -51,17 +54,21 @@ export default function AdminPortal() {
     const baselineFormRef = useRef(productForm);
     const isInitialSelection = useRef(true);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const imageUrlDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (isDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsDropdownOpen(false);
             }
+            if (isImageUrlDropdownOpen && imageUrlDropdownRef.current && !imageUrlDropdownRef.current.contains(event.target as Node)) {
+                setIsImageUrlDropdownOpen(false);
+            }
         }
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isDropdownOpen]);
+    }, [isDropdownOpen, isImageUrlDropdownOpen]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -115,8 +122,8 @@ export default function AdminPortal() {
             if (!selectedShop) return;
             try {
                 const response = await fetchWithAuthToken('/api/products', 'POST', {
-                    action: 'fetch',
-                    shopId: selectedShop,
+                    action: 'fetchShop',
+                    shop_id: selectedShop,
                 });
                 if (!response || !response.data) {
                     throw new Error('No products found for the selected store.');
@@ -131,104 +138,101 @@ export default function AdminPortal() {
         fetchProducts();
     }, [selectedShop]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Form submitted');
+        console.log(`Submitting ${formType} form`);
         setIsSaving(true);
 
         try {
-            if (formType === 'product') {
-                console.log('Submitting product:', {
-                    selectedShop,
-                    title: productForm.title,
-                    price: productForm.price
-                });
-
-                const payload = {
-                    action: 'add',
-                    shopId: selectedShop,
-                    title: productForm.title,
-                    price: parseFloat(productForm.price),
-                    address: productForm.address,
-                    description: productForm.description,
-                    imageUrls: productForm.imageUrls,
-                    isChangable: productForm.isChangable,
-                    isUsed: productForm.isUsed,
-                    tags: productForm.tags,
-                };
-
-                const response = await fetchWithAuthToken('/api/products', 'POST', payload);
-                console.log('Server response:', response);
-
-                if (response?.data) {
-                    alert('Product saved!');
-                    
-                    // Update baseline to reflect saved state
-                    baselineFormRef.current = { ...productForm };
-                    setHasUnsavedChanges(false);
-
-                    // Refresh product list
-                    const updatedProducts = await fetchWithAuthToken('/api/products', 'POST', {
-                        action: 'fetch',
-                        shopId: selectedShop,
+            switch (formType) {
+                case 'product': {
+                    console.log('Submitting product:', {
+                        selectedShop,
+                        title: productForm.title,
+                        price: productForm.price
                     });
-                    if (updatedProducts?.data) {
-                        setProducts(updatedProducts.data);
+
+                    const payload = {
+                        action: 'add',
+                        shop_id: selectedShop,
+                        title: productForm.title,
+                        price: parseFloat(productForm.price),
+                        address: productForm.address,
+                        description: productForm.description,
+                        image_urls: productForm.imageUrls,
+                        is_changable: productForm.isChangable,
+                        is_used: productForm.isUsed,
+                        tags: productForm.tags,
+			quantity: productForm.quantity,
+                    };
+
+                    const response = await fetchWithAuthToken('/api/products', 'POST', payload);
+                    console.log('Server response:', response);
+
+                    if (response?.data) {
+                        alert('Product saved!');
+                        
+                        baselineFormRef.current = { ...productForm };
+                        setHasUnsavedChanges(false);
+
+                        const updatedProducts = await fetchWithAuthToken('/api/products', 'POST', {
+                            action: 'fetch',
+                            shop_id: selectedShop,
+                        });
+                        if (updatedProducts?.data) {
+                            setProducts(updatedProducts.data);
+                        }
                     }
+                    break;
                 }
-            } else if (formType === 'store') {
-	    setIsSaving(true);
-	      console.log('Submitting store:', storeForm);
-	              const payload = {
-            	      action: 'add',
-		                  ...storeForm
-			        };
+                
+                case 'store': {
+                    console.log('Submitting store:', storeForm);
 
-        const response = await fetchWithAuthToken('/api/shops', 'POST', payload);
-        console.log('Server response:', response);
+                    const payload = {
+                        action: 'add',
+                        ...storeForm
+                    };
 
-        if (response?.data) {
-            alert('Store saved!');
-            
-            // Refresh store list
-            const { data } = await fetchWithAuthToken('/api/shops', 'POST', {
-                action: 'fetchAll',
-            });
-            if (data) {
-                setShops(data);
+                    const response = await fetchWithAuthToken('/api/shops', 'POST', payload);
+                    console.log('Server response:', response);
+
+                    if (response?.data) {
+                        alert('Store saved!');
+                        
+                        const { data } = await fetchWithAuthToken('/api/shops', 'POST', {
+                            action: 'fetchAll',
+                        });
+                        if (data) {
+                            setShops(data);
+                        }
+
+                        setStoreForm({
+                            name: '',
+                            imageUrl: '',
+                            introduce: '',
+                        });
+                        setHasUnsavedChanges(false);
+                    }
+                    break;
+                }
+
+                default:
+                    console.error('Unknown form type:', formType);
+                    alert('Invalid form type');
             }
-
-            // Clear form
-            setStoreForm({
-                name: '',
-                imageUrl: '',
-                introduce: '',
-            });
-            setHasUnsavedChanges(false);
-
-	    }
         } catch (error) {
-            console.error('Error saving:', error);
-            alert('Failed to save. Please try again.');
+            console.error(`Error saving ${formType}:`, error);
+            alert(`Failed to save ${formType}. Please try again.`);
         } finally {
             setIsSaving(false);
         }
     };
 
-    const handleStoreFormChange = (field: keyof typeof storeForm, value: string) => {
-    setStoreForm(prev => {
-        const updatedForm = { ...prev, [field]: value };
-        setHasUnsavedChanges(true);
-        return updatedForm;
-    });
-};
-
-
     const handleFormChange = (field: keyof typeof productForm, value: any) => {
         setProductForm((prev) => {
             const updatedForm = { ...prev, [field]: value };
             
-            // Only check for changes if we're not in initial selection mode
             if (!isInitialSelection.current) {
                 const hasChanges = Object.keys(updatedForm).some(key => {
                     const currentVal = updatedForm[key as keyof typeof productForm];
@@ -246,8 +250,36 @@ export default function AdminPortal() {
         });
     };
 
+    const handleStoreFormChange = (field: keyof typeof storeForm, value: string) => {
+        setStoreForm(prev => {
+            const updatedForm = { ...prev, [field]: value };
+            setHasUnsavedChanges(true);
+            return updatedForm;
+        });
+    };
+
+    const handleImageUrlSelect = (url: string) => {
+        handleFormChange('newImageUrl', url);
+        setIsImageUrlDropdownOpen(false);
+    };
+
+    const handleImageUrlAction = () => {
+        if (productForm.imageUrls.includes(productForm.newImageUrl)) {
+            // Remove URL
+            handleFormChange('imageUrls', 
+                productForm.imageUrls.filter(url => url !== productForm.newImageUrl)
+            );
+            handleFormChange('newImageUrl', '');
+        } else if (productForm.newImageUrl) {
+            // Add URL
+            handleFormChange('imageUrls', 
+                [...productForm.imageUrls, productForm.newImageUrl]
+            );
+            handleFormChange('newImageUrl', '');
+        }
+    };
+
     const handleShopChange = (shopId: string) => {
-        // Only check for changes if they've actually modified something
         if (hasUnsavedChanges) {
             const confirmDiscard = confirm(
                 'You have unsaved changes. Are you sure you want to switch stores and discard them?'
@@ -257,7 +289,6 @@ export default function AdminPortal() {
 
         setSelectedShop(shopId);
         setSelectedProduct('');
-        // Reset form to initial state
         const initialForm = {
             title: '',
             price: '',
@@ -267,12 +298,14 @@ export default function AdminPortal() {
             newImageUrl: '',
             isChangable: true,
             isUsed: false,
+	    quantity: 0,
             tags: [''],
         };
         setProductForm(initialForm);
         baselineFormRef.current = initialForm;
         setHasUnsavedChanges(false);
         isInitialSelection.current = true;
+        setIsImageUrlDropdownOpen(false);
     };
 
     const handleProductSelect = (product: Product) => {
@@ -280,7 +313,6 @@ export default function AdminPortal() {
         
         if (!product) return;
 
-        // Only show alert if there are actual changes to current data
         if (hasUnsavedChanges) {
             const confirmDiscard = confirm(
                 'You have unsaved changes. Are you sure you want to switch products and discard them?'
@@ -293,37 +325,21 @@ export default function AdminPortal() {
             price: product.price.toString(),
             address: product.address,
             description: product.description,
-            imageUrls: product.imageUrls || [],
+            imageUrls: Array.isArray(product.image_urls) ? [...product.image_urls] : [],
             newImageUrl: '',
-            isChangable: product.isChangable,
-            isUsed: product.isUsed,
+            isChangable: product.is_changable,
+            isUsed: product.is_used,
+	    quantity: product.quantity,
             tags: product.tags || [''],
         };
 
         setProductForm(newProductForm);
-        baselineFormRef.current = newProductForm;  // Set the baseline to compare against
+        baselineFormRef.current = newProductForm;
         setSelectedProduct(product.id);
-        setHasUnsavedChanges(false);  // Reset changes flag
+        setHasUnsavedChanges(false);
         isInitialSelection.current = false;
         setIsDropdownOpen(false);
-    };
-
-    const handleAddImageUrl = async () => {
-        if (!productForm.newImageUrl) return;
-        try {
-            if (true) {
-                setProductForm((prev) => ({
-                    ...prev,
-                    imageUrls: [...prev.imageUrls, prev.newImageUrl],
-                    newImageUrl: '',
-                }));
-            } else {
-                alert('Invalid URL');
-            }
-        } catch (error) {
-            console.error('Error validating URL:', error);
-            alert('Failed to validate URL');
-        }
+        setIsImageUrlDropdownOpen(false);
     };
 
     const handleDelete = async () => {
@@ -337,7 +353,7 @@ export default function AdminPortal() {
             setIsSaving(true);
             try {
                 await fetchWithAuthToken('/api/shops', 'DELETE', {
-                    shopId: selectedShop,
+                    id: selectedShop,
                 });
                 alert('Store deleted successfully!');
                 setShops((prev) => prev.filter((shop) => shop.id !== selectedShop));
@@ -363,7 +379,6 @@ export default function AdminPortal() {
                 alert('Product deleted successfully!');
                 setProducts((prev) => prev.filter((product) => product.id !== selectedProduct));
                 setSelectedProduct('');
-                // Reset form after successful delete
                 const initialForm = {
                     title: '',
                     price: '',
@@ -373,6 +388,7 @@ export default function AdminPortal() {
                     newImageUrl: '',
                     isChangable: true,
                     isUsed: false,
+		    quantity: 0,
                     tags: [''],
                 };
                 setProductForm(initialForm);
@@ -416,57 +432,56 @@ export default function AdminPortal() {
 return (
         <div className="py-12 px-6">
             <div className="pt-8">
-
-{adminInfo?.role === 'WEB_ADMIN' && (
-    <div className="flex justify-center mb-6">
-        <Button
-            color="uclaBlue"
-            size="md"
-            className="shadow-lg transform hover:scale-105 transition-transform"
-            onClick={() => {
-                if (hasUnsavedChanges) {
-                    const confirmDiscard = confirm(
-                        'You have unsaved changes. Are you sure you want to switch forms and discard them?'
-                    );
-                    if (!confirmDiscard) return;
-                }
-                setFormType(formType === 'product' ? 'store' : 'product');
-                // Clear form when switching
-                if (formType === 'product') {
-                    setStoreForm({
-                        name: '',
-                        imageUrl: '',
-                        introduce: '',
-                    });
-                } else {
-                    const initialForm = {
-                        title: '',
-                        price: '',
-                        address: 'United States',
-                        description: '',
-                        imageUrls: [],
-                        newImageUrl: '',
-                        isChangable: true,
-                        isUsed: false,
-                        tags: [''],
-                    };
-                    setProductForm(initialForm);
-                    baselineFormRef.current = initialForm;
-                }
-                setHasUnsavedChanges(false);
-                isInitialSelection.current = true;
-            }}
-        >
-            {formType === 'product' ? 'Edit Stores' : 'Back to Products'}
-        </Button>
-    </div>
-)}
-
+                {adminInfo?.role === 'WEB_ADMIN' && (
+                    <div className="flex justify-center mb-6">
+                        <Button
+                            color="uclaBlue"
+                            size="md"
+                            className="shadow-lg transform hover:scale-105 transition-transform"
+                            onClick={() => {
+                                if (hasUnsavedChanges) {
+                                    const confirmDiscard = confirm(
+                                        'You have unsaved changes. Are you sure you want to switch forms and discard them?'
+                                    );
+                                    if (!confirmDiscard) return;
+                                }
+                                setFormType(formType === 'product' ? 'store' : 'product');
+                                // Clear form when switching
+                                if (formType === 'product') {
+                                    setStoreForm({
+                                        name: '',
+                                        imageUrl: '',
+                                        introduce: '',
+                                    });
+                                } else {
+                                    const initialForm = {
+                                        title: '',
+                                        price: '',
+                                        address: 'United States',
+                                        description: '',
+                                        imageUrls: [],
+                                        newImageUrl: '',
+                                        isChangable: true,
+                                        isUsed: false,
+					quantity: 0,
+                                        tags: [''],
+                                    };
+                                    setProductForm(initialForm);
+                                    baselineFormRef.current = initialForm;
+                                }
+                                setHasUnsavedChanges(false);
+                                isInitialSelection.current = true;
+                            }}
+                        >
+                            {formType === 'product' ? 'Edit Stores' : 'Back to Products'}
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {formType === 'store' ? (
                 <div className="mb-8">
-                    <form className="space-y-4" onSubmit={handleSubmit}>
+                    <form className="space-y-4" onSubmit={handleFormSubmit}>
                         <div>
                             <label className="block text-sm font-medium mb-1">Store Name</label>
                             <input
@@ -510,7 +525,7 @@ return (
                 </div>
             ) : (
                 <div className="mb-8">
-                    <form className="space-y-4" onSubmit={handleSubmit}>
+                    <form className="space-y-4" onSubmit={handleFormSubmit}>
                         <div>
                             <label className="block text-sm font-medium mb-1">Shop</label>
                             <select
@@ -596,38 +611,59 @@ return (
                                 required
                             />
                         </div>
-                        <div className="flex items-center">
-                            <input
-                                type="text"
-                                className="w-full p-2 border rounded mr-2"
-                                placeholder="Image URL"
-                                value={productForm.newImageUrl}
-                                onChange={(e) => handleFormChange('newImageUrl', e.target.value)}
-                            />
-                            <Button
-                                color={
-                                    isUrlValid === null
-                                        ? 'uclaBlue'
-                                        : isUrlValid
-                                        ? 'uclaGold'
-                                        : 'red'
-                                }
-                                size="md"
-                                onClick={handleAddImageUrl}
-                                type="button"
-                                className="shadow-lg transform hover:scale-105 transition-transform whitespace-nowrap"
-                            >
-                                Add Image URL
-                            </Button>
-                        </div>
+
+                        {/* Image URL section */}
                         <div>
-                            <ul>
-                                {productForm.imageUrls?.map((url, index) => (
-                                    <li key={index} className="break-words">
-                                        {url}
-                                    </li>
-                                ))}
-                            </ul>
+                            <label className="block text-sm font-medium mb-1">Image URL</label>
+                            <div className="relative" ref={imageUrlDropdownRef}>
+                                <div className="flex items-center">
+                                    <input
+                                        type="text"
+                                        className="w-full p-2 border rounded mr-2"
+                                        placeholder="Add or select image URL"
+                                        value={productForm.newImageUrl}
+                                        onChange={(e) => handleFormChange('newImageUrl', e.target.value)}
+                                        onFocus={() => setIsImageUrlDropdownOpen(true)}
+                                    />
+                                    <Button
+                                        color={productForm.imageUrls.includes(productForm.newImageUrl) ? 'red' : 'uclaBlue'}
+                                        size="md"
+                                        onClick={handleImageUrlAction}
+                                        type="button"
+                                        className="whitespace-nowrap"
+                                    >
+                                        {productForm.imageUrls.includes(productForm.newImageUrl) ? 'Remove URL' : 'Add URL'}
+                                    </Button>
+                                </div>
+                                {isImageUrlDropdownOpen && productForm.imageUrls.length > 0 && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                                        {productForm.imageUrls.map((url, index) => (
+                                            <div
+                                                key={index}
+                                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                                onClick={() => handleImageUrlSelect(url)}
+                                            >
+                                                {url}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+
+		<div className="flex items-start space-x-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Quantity
+                            </label>
+                            <input
+                                type="number"
+                                className="p-2 border rounded"
+                                value={productForm.quantity}
+                                onChange={(e) => handleFormChange('quantity', e.target.value)}
+                                required
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">
@@ -649,6 +685,7 @@ return (
                                 Is used
                             </label>
                         </div>
+		</div>
                         <div className="flex justify-between">
                             <Button
                                 color="uclaBlue"
@@ -674,3 +711,4 @@ return (
         </div>
     );
 }
+

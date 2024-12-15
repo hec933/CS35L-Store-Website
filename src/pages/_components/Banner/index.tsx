@@ -3,6 +3,7 @@ import { Carousel } from 'react-responsive-carousel';
 import Image from 'next/image';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { Product } from '@/types'; 
+import { fetchWithAuthToken } from '@/utils/auth';
 
 export default function Banner() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -11,16 +12,13 @@ export default function Banner() {
   useEffect(() => {
     const fetchMostLikedProducts = async () => {
       try {
-        const response = await fetch('/api/products', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ mostLiked: true })
-        });
-        const { data } = await response.json();
+        const { data } = await fetchWithAuthToken('/api/products', 'POST', {
+                    action: 'mostLiked',
+                });
+
+	//shuffle and show 5 random most liked
         const shuffled = data.sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, 10);
+        const selected = shuffled.slice(0, 5);
         setProducts(selected);
       } catch (error) {
         console.error('Failed to fetch most liked products:', error);
@@ -57,7 +55,7 @@ export default function Banner() {
       {products.map((product) => (
         <div key={product.id} className="h-96">
           <Image
-            src={product.imageUrls[0]} 
+            src={product.image_urls[0]} 
             className="w-full h-full rounded-lg object-cover"
             fill
             alt={product.title}
