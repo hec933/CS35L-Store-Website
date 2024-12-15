@@ -4,43 +4,33 @@ import "dayjs/locale/en";
 import Text from "../Text";
 
 interface Props {
-    // Product name
     title: string;
-
-    // Product price
     price: number;
-
-    // Product registration time
-    createdAt: string;
-
-    // Product main image URL
-    imageUrl: string;
-
-    // Whether the product is sold out
-    isSoldOut?: boolean;
+    created_at: string;
+    image_url: string;
+    quantity: number;
 }
 
-// Extend dayjs with relativeTime
 dayjs.extend(relativeTime).locale("en");
 
-// Component for displaying a product preview
+//thumbnail product
 export default function Product({
     title,
     price,
-    createdAt,
-    imageUrl,
-    isSoldOut,
+    created_at,
+    image_url,
+    quantity,
 }: Props) {
     return (
         <div className="flex flex-col border border-slate-300 relative">
-            {isSoldOut && (
+            {quantity && quantity > 0 && (
                 <div className="absolute top-0 left-0 w-full h-full bg-slate-900 opacity-70 flex justify-center items-center">
                     <Text color="white">Sold Out</Text>
                 </div>
             )}
             <div
                 className="h-36 bg-cover bg-center"
-                style={{ backgroundImage: `url(${imageUrl})` }}
+                style={{ backgroundImage: `url(${image_url})` }}
             />
             <div className="h-20 flex flex-col px-3 justify-center">
                 <Text className="text-ellipsis overflow-hidden whitespace-nowrap block">
@@ -57,7 +47,7 @@ export default function Product({
                         </Text>
                     </div>
                     <Text weight="light" color="grey" size="sm">
-                        {dayjs(createdAt).fromNow()}
+                        {dayjs(created_at).fromNow()}
                     </Text>
                 </div>
             </div>

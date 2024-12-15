@@ -17,18 +17,20 @@ export type Shop = {
 
 export type Product = {
   id: string;
-  shopId: string;
+  shop_id: string;
   title: string;
   price: number;
   description: string;
-  imageUrls: string[];
-  isChangable: boolean;
-  isUsed: boolean;
+  image_urls: string[];
+  image_url: string;
+  is_changable: boolean;
+  is_used: boolean;
   tags: string[];
-  createdAt: string;
-  createdBy: string;
-  purchaseBy: string | null;
+  created_at: string;
+  created_by: string;
+  purchase_by: string | null;
   address: string;
+  quantity: number;
 };
 
 export type Like = {

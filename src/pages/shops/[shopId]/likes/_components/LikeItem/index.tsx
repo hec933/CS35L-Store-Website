@@ -36,9 +36,9 @@ export default function LikeItem({ productId, quantity, onQuantityChange }: Prop
     <Product
       title={product.title}
       price={product.price}
-      createdAt={product.createdAt}
-      imageUrl={product.imageUrls[0]}
-      isSoldOut={!!product.purchaseBy}
+      created_at={product.created_at}
+      image_url={product.image_urls[0]}
+      quantity={quantity}
     />
   );
 }
