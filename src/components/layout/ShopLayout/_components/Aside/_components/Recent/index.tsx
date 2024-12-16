@@ -1,114 +1,61 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import RecentItem from './_components/RecentItem';
+import { useEffect, useState } from 'react';
 import Spinner from '@/components/common/Spinner';
 import Text from '@/components/common/Text';
-import { fetchWithAuthToken } from '@/utils/auth';
-import { RECENT_ITEM_IDS_KEY, getRecentItemIds } from '@/utils/localstorage';
-
-import { Product } from '@/types';
+import RecentItem from './_components/RecentItem';
+import getRecentProducts from '@/repository/products/getRecentProducts';
+import { Product as TProduct } from '@/types';
 
 export default function Recent() {
+  const [recentProducts, setRecentProducts] = useState<TProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [recentProducts, setRecentProducts] = useState<Product[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-
-  const totalPage = useMemo(
-    () => Math.max(Math.ceil(recentProducts.length / 3) - 1, 0),
-    [recentProducts]
-  );
 
   useEffect(() => {
-    setCurrentPage((current) => Math.min(current, totalPage));
-  }, [totalPage]);
-
-  const handleUpdateRecentProducts = useCallback(async () => {
-    try {
+    const fetchRecentProducts = async () => {
       setIsLoading(true);
-      const recentIds = getRecentItemIds();
-      if (recentIds.length === 0) {
-        setRecentProducts([]);
-        return;
+      const data = await getRecentProducts();
+      if (data !== '$0') {
+        setRecentProducts(data);
+      } else {
+        console.error('No recent products found or failed to fetch.');
       }
-
-      const { data } = await fetchWithAuthToken('/api/products', 'POST', {
-        action: 'fetchByIds',
-        productIds: recentIds,
-      });
-      setRecentProducts(data);
-    } catch (error) {
-      console.error('Error updating recent products:', error);
-    } finally {
       setIsLoading(false);
-    }
+    };
+
+    fetchRecentProducts();
   }, []);
 
-  useEffect(() => {
-    handleUpdateRecentProducts();
-  }, [handleUpdateRecentProducts]);
+  if (isLoading) {
+    return (
+      <div className="text-center py-5">
+        <Spinner />
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    const eventHandler = () => handleUpdateRecentProducts();
-    window.addEventListener(RECENT_ITEM_IDS_KEY, eventHandler);
-    return () => window.removeEventListener(RECENT_ITEM_IDS_KEY, eventHandler);
-  }, [handleUpdateRecentProducts]);
+  if (!recentProducts.length) {
+    return (
+      <div className="text-center mt-2">
+        <Text size="xs" color="grey">
+          No recently viewed products.
+        </Text>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-uclaBlue p-2 bg-white flex flex-col items-center text-center">
       <Text size="sm">Your Browsing History</Text>
-      {isLoading ? (
-        <div className="py-5">
-          <Spinner />
-        </div>
-      ) : recentProducts.length === 0 ? (
-        <div className="mt-2 text-center">
-          <Text size="xs" color="grey" className="block">
-            No recently viewed products.
-          </Text>
-        </div>
-      ) : (
-        <>
-          <Text size="sm" color="red" weight="bold">
-            {recentProducts.length}
-          </Text>
-          <div className="border-t border-lightestBlue border-dashed pt-3 mt-2 flex flex-col gap-2">
-            {recentProducts
-              .slice(currentPage * 3, (currentPage + 1) * 3)
-              .map(({ id, title, price, image_urls }) => (
-                <RecentItem
-                  key={id}
-                  id={id}
-                  title={title}
-                  price={price}
-                  imageUrl={image_urls[0]}
-                />
-              ))}
-          </div>
-          <div className="flex justify-between items-center mt-2 gap-1">
-            <button
-              className="border border-uclaBlue h-5 w-5 flex justify-center items-center"
-              disabled={currentPage === 0}
-              onClick={() => setCurrentPage(currentPage - 1)}
-            >
-              <Text size="xs" color="uclaBlue">
-                {'<'}
-              </Text>
-            </button>
-            <Text size="xs" color="uclaBlue">
-              {currentPage + 1} / {totalPage + 1}
-            </Text>
-            <button
-              className="border border-uclaBlue h-5 w-5 flex justify-center items-center"
-              disabled={currentPage === totalPage}
-              onClick={() => setCurrentPage(currentPage + 1)}
-            >
-              <Text size="xs" color="uclaBlue">
-                {'>'}
-              </Text>
-            </button>
-          </div>
-        </>
-      )}
+      <div className="border-t border-lightestBlue border-dashed pt-3 mt-2 flex flex-col gap-2">
+        {recentProducts.map(({ id, title, price, image_urls }) => (
+          <RecentItem
+            key={id}
+            id={id}
+            title={title}
+            price={price}
+            imageUrl={image_urls[0] || ''}
+          />
+        ))}
+      </div>
     </div>
   );
 }
-

@@ -1,99 +1,42 @@
-import { Product } from '@/types'
-import { getAuthToken } from '@/utils/auth'
-import { getRecentItemIds } from '@/utils/localstorage'
-import { getRecentKeywords } from '@/utils/localstorage'
+import { fetchWithAuthToken } from '@/utils/auth';
+import { getRecentItemIds, getRecentKeywords } from '@/utils/localstorage';
 
+export default async function getRecentProducts() {
+  try {
+    const productIds = getRecentItemIds();
+    const keywords = getRecentKeywords();
 
-//get the product data for user recents products viewed
-export async function getRecentProducts(): Promise<{ 
-    data: Product[] }> {
-
-
-    const recentIds = getRecentItemIds();
-    
-    if (recentIds.length === 0) {
-        return { data: [] };
+    if (productIds && productIds.length > 0) {
+      const { data } = await fetchWithAuthToken('/api/products', 'POST', {
+        action: 'fetchByIds',
+        productIds,
+      });
+      if (data && data.length > 0) {
+        console.log('Found:', data.length, 'recently viewed products by IDs:', productIds);
+        return data;
+      } else if (data && data.length === 0) {
+        throw new Error(`No products found with IDs: ${productIds}`);
+      } else {
+        throw new Error(`No response for action: fetchByIds and IDs: ${productIds}`);
+      }
+    } else if (keywords && keywords.length > 0) {
+      const { data } = await fetchWithAuthToken('/api/products', 'POST', {
+        action: 'fetchKeyword',
+        keyword: keywords,
+      });
+      if (data && data.length > 0) {
+        console.log('Found:', data.length, 'recently viewed products by keywords:', keywords);
+        return data;
+      } else if (data && data.length === 0) {
+        throw new Error(`No products found with keywords: ${keywords}`);
+      } else {
+        throw new Error(`No response for action: fetchKeyword and keywords: ${keywords}`);
+      }
+    } else {
+      throw new Error('No recent product IDs or keywords available');
     }
-
-
-    const token = await getAuthToken();
-    try {
-        const products = await Promise.all(
-            recentIds.map(async (id) => {
-                const response = await fetch(`/api/products?id=${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch product ${id}`);
-                }
-                const { data } = await response.json();
-                return data;
-            })
-        );
-
-
-        //remove bad products from user cache
-        const validProducts = products.filter(Boolean);
-        return { data: validProducts };
-    } catch (error) {
-        console.error('Error fetching recent products:', error);
-        return { data: [] };
-    }
+  } catch (error) {
+    console.error('Failed to fetch recent products:', error);
+    return '$0';
+  }
 }
-
-//get the data by users keywords used
-export async function getProductsByRecentKeywords(): Promise<{
-     data: Product[] }> {
-    const recentKeywords = getRecentKeywords();
-    if (recentKeywords.length === 0) {
-        return { data: [] };
-    }
-    const token = await getAuthToken();
-
-    try {//try to get the products
-        const products = await Promise.all(
-            recentKeywords.map(async (keyword) => {
-                const response = await fetch(
-                    `/api/products?keyword=${encodeURIComponent(keyword)}&fromPage=0&toPage=1`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    }
-                );
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch products for keyword ${keyword}`);
-                }
-                const { data } = await response.json();
-                return data;
-            })
-        );
-
-        //clean up thelist
-        const allProducts = products.flat();
-        const uniqueProducts = allProducts.filter((product, index) => 
-            allProducts.findIndex(p => p.id === product.id) === index
-        );
-        
-        return { data: uniqueProducts };
-    } catch (error) {
-        console.error('Error fetching products by recent keywords:', error);
-        return { data: [] };
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
