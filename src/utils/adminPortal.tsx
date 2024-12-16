@@ -10,40 +10,56 @@ type AdminInfo = {
     authorizedStores?: string[];
 };
 
+type ProductFormType = {
+    title: string;
+    price: string;
+    address: string;
+    description: string;
+    imageUrls: string[];
+    newImageUrl: string;
+    isChangable: boolean;
+    isUsed: boolean;
+    quantity: number;
+    tags: string[];
+};
+
+type StoreFormType = {
+    name: string;
+    imageUrl: string;
+    introduce: string;
+};
+
 export default function AdminPortal() {
     const [adminInfo, setAdminInfo] = useState<AdminInfo | null>(null);
     const [formType, setFormType] = useState<'product' | 'store'>('product');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isStoreDropdownOpen, setIsStoreDropdownOpen] = useState(false);
     const [isImageUrlDropdownOpen, setIsImageUrlDropdownOpen] = useState(false);
-    const [storeForm, setStoreForm] = useState({
+
+    const initialStoreForm: StoreFormType = {
         name: '',
         imageUrl: '',
         introduce: '',
-    });
-    const [productForm, setProductForm] = useState<{
-        title: string;
-        price: string;
-        address: string;
-        description: string;
-        imageUrls: string[];
-        newImageUrl: string;
-        isChangable: boolean;
-        isUsed: boolean;
-	quantity: number;
-        tags: string[];
-    }>({
+    };
+
+    const [storeForm, setStoreForm] = useState<StoreFormType>(initialStoreForm);
+    const baselineStoreFormRef = useRef<StoreFormType>(initialStoreForm);
+    const isInitialStoreSelection = useRef(true);
+
+    const [productForm, setProductForm] = useState<ProductFormType>({
         title: '',
         price: '',
         address: 'United States',
         description: '',
         imageUrls: [],
-        newImageUrl: '',
+	newImageUrl: '',
         isChangable: true,
         isUsed: false,
-	quantity: 0,
+        quantity: 0,
         tags: [''],
     });
+
     const [isSaving, setIsSaving] = useState(false);
     const [selectedShop, setSelectedShop] = useState<string>('');
     const [selectedProduct, setSelectedProduct] = useState<string>('');
@@ -51,15 +67,19 @@ export default function AdminPortal() {
     const [products, setProducts] = useState<Product[]>([]);
     const [isUrlValid, setIsUrlValid] = useState<boolean | null>(null);
 
-    const baselineFormRef = useRef(productForm);
+    const baselineFormRef = useRef<ProductFormType>(productForm);
     const isInitialSelection = useRef(true);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const storeDropdownRef = useRef<HTMLDivElement>(null);
     const imageUrlDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (isDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsDropdownOpen(false);
+            }
+            if (isStoreDropdownOpen && storeDropdownRef.current && !storeDropdownRef.current.contains(event.target as Node)) {
+                setIsStoreDropdownOpen(false);
             }
             if (isImageUrlDropdownOpen && imageUrlDropdownRef.current && !imageUrlDropdownRef.current.contains(event.target as Node)) {
                 setIsImageUrlDropdownOpen(false);
@@ -68,7 +88,7 @@ export default function AdminPortal() {
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isDropdownOpen, isImageUrlDropdownOpen]);
+    }, [isDropdownOpen, isStoreDropdownOpen, isImageUrlDropdownOpen]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -128,7 +148,6 @@ export default function AdminPortal() {
                 if (!response || !response.data) {
                     throw new Error('No products found for the selected store.');
                 }
-                console.log('Fetched products:', response.data);
                 setProducts(response.data);
             } catch (error) {
                 console.error('Error fetching products:', error);
@@ -140,18 +159,11 @@ export default function AdminPortal() {
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log(`Submitting ${formType} form`);
         setIsSaving(true);
 
         try {
             switch (formType) {
                 case 'product': {
-                    console.log('Submitting product:', {
-                        selectedShop,
-                        title: productForm.title,
-                        price: productForm.price
-                    });
-
                     const payload = {
                         action: 'add',
                         shop_id: selectedShop,
@@ -163,18 +175,16 @@ export default function AdminPortal() {
                         is_changable: productForm.isChangable,
                         is_used: productForm.isUsed,
                         tags: productForm.tags,
-			quantity: productForm.quantity,
+                        quantity: productForm.quantity,
                     };
 
                     const response = await fetchWithAuthToken('/api/products', 'POST', payload);
-                    console.log('Server response:', response);
 
                     if (response?.data) {
                         alert('Product saved!');
-                        
                         baselineFormRef.current = { ...productForm };
                         setHasUnsavedChanges(false);
-
+                        setSelectedProduct('');
                         const updatedProducts = await fetchWithAuthToken('/api/products', 'POST', {
                             action: 'fetch',
                             shop_id: selectedShop,
@@ -187,18 +197,19 @@ export default function AdminPortal() {
                 }
                 
                 case 'store': {
-                    console.log('Submitting store:', storeForm);
-
                     const payload = {
                         action: 'add',
                         ...storeForm
                     };
 
                     const response = await fetchWithAuthToken('/api/shops', 'POST', payload);
-                    console.log('Server response:', response);
 
                     if (response?.data) {
                         alert('Store saved!');
+                        setStoreForm(initialStoreForm);
+                        baselineStoreFormRef.current = initialStoreForm;
+                        setHasUnsavedChanges(false);
+                        setSelectedShop('');
                         
                         const { data } = await fetchWithAuthToken('/api/shops', 'POST', {
                             action: 'fetchAll',
@@ -206,20 +217,9 @@ export default function AdminPortal() {
                         if (data) {
                             setShops(data);
                         }
-
-                        setStoreForm({
-                            name: '',
-                            imageUrl: '',
-                            introduce: '',
-                        });
-                        setHasUnsavedChanges(false);
                     }
                     break;
                 }
-
-                default:
-                    console.error('Unknown form type:', formType);
-                    alert('Invalid form type');
             }
         } catch (error) {
             console.error(`Error saving ${formType}:`, error);
@@ -250,10 +250,16 @@ export default function AdminPortal() {
         });
     };
 
-    const handleStoreFormChange = (field: keyof typeof storeForm, value: string) => {
+    const handleStoreFormChange = (field: keyof StoreFormType, value: string) => {
         setStoreForm(prev => {
             const updatedForm = { ...prev, [field]: value };
-            setHasUnsavedChanges(true);
+            if (!isInitialStoreSelection.current) {
+                const hasChanges = Object.keys(updatedForm).some(key => {
+                    return updatedForm[key as keyof StoreFormType] !== 
+                           baselineStoreFormRef.current[key as keyof StoreFormType];
+                });
+                setHasUnsavedChanges(hasChanges);
+            }
             return updatedForm;
         });
     };
@@ -265,18 +271,83 @@ export default function AdminPortal() {
 
     const handleImageUrlAction = () => {
         if (productForm.imageUrls.includes(productForm.newImageUrl)) {
-            // Remove URL
             handleFormChange('imageUrls', 
                 productForm.imageUrls.filter(url => url !== productForm.newImageUrl)
             );
             handleFormChange('newImageUrl', '');
         } else if (productForm.newImageUrl) {
-            // Add URL
             handleFormChange('imageUrls', 
                 [...productForm.imageUrls, productForm.newImageUrl]
             );
             handleFormChange('newImageUrl', '');
         }
+    };
+
+    const handleNewProduct = () => {
+        if (hasUnsavedChanges) {
+            const confirmDiscard = confirm(
+                'You have unsaved changes. Are you sure you want to create a new product?'
+            );
+            if (!confirmDiscard) return;
+        }
+
+        const initialForm = {
+            title: '',
+            price: '',
+            address: 'United States',
+            description: '',
+            imageUrls: [],
+            newImageUrl: '',
+            isChangable: true,
+            isUsed: false,
+            quantity: 0,
+            tags: [''],
+        };
+
+        setProductForm(initialForm);
+        baselineFormRef.current = initialForm;
+        setSelectedProduct('');
+        setHasUnsavedChanges(false);
+        isInitialSelection.current = true;
+        setIsDropdownOpen(false);
+    };
+
+    const handleNewStore = () => {
+        if (hasUnsavedChanges) {
+            const confirmDiscard = confirm(
+                'You have unsaved changes. Are you sure you want to create a new store?'
+            );
+            if (!confirmDiscard) return;
+        }
+
+        setStoreForm(initialStoreForm);
+        baselineStoreFormRef.current = initialStoreForm;
+        setSelectedShop('');
+        setHasUnsavedChanges(false);
+        isInitialStoreSelection.current = true;
+        setIsStoreDropdownOpen(false);
+    };
+
+    const handleStoreSelect = (store: Shop) => {
+        if (hasUnsavedChanges) {
+            const confirmDiscard = confirm(
+                'You have unsaved changes. Are you sure you want to switch stores?'
+            );
+            if (!confirmDiscard) return;
+        }
+
+        const newStoreForm = {
+            name: store.name,
+            imageUrl: store.imageUrl || '',
+            introduce: store.introduce || '',
+        };
+
+        setStoreForm(newStoreForm);
+        baselineStoreFormRef.current = newStoreForm;
+        setSelectedShop(store.id);
+        setHasUnsavedChanges(false);
+        isInitialStoreSelection.current = false;
+        setIsStoreDropdownOpen(false);
     };
 
     const handleShopChange = (shopId: string) => {
@@ -298,7 +369,7 @@ export default function AdminPortal() {
             newImageUrl: '',
             isChangable: true,
             isUsed: false,
-	    quantity: 0,
+            quantity: 0,
             tags: [''],
         };
         setProductForm(initialForm);
@@ -309,8 +380,6 @@ export default function AdminPortal() {
     };
 
     const handleProductSelect = (product: Product) => {
-        console.log('Selecting product:', product);
-        
         if (!product) return;
 
         if (hasUnsavedChanges) {
@@ -329,7 +398,7 @@ export default function AdminPortal() {
             newImageUrl: '',
             isChangable: product.is_changable,
             isUsed: product.is_used,
-	    quantity: product.quantity,
+            quantity: product.quantity,
             tags: product.tags || [''],
         };
 
@@ -339,7 +408,6 @@ export default function AdminPortal() {
         setHasUnsavedChanges(false);
         isInitialSelection.current = false;
         setIsDropdownOpen(false);
-        setIsImageUrlDropdownOpen(false);
     };
 
     const handleDelete = async () => {
@@ -358,11 +426,15 @@ export default function AdminPortal() {
                 alert('Store deleted successfully!');
                 setShops((prev) => prev.filter((shop) => shop.id !== selectedShop));
                 setSelectedShop('');
+                setStoreForm(initialStoreForm);
+                baselineStoreFormRef.current = initialStoreForm;
+                setHasUnsavedChanges(false);
+                isInitialStoreSelection.current = true;
             } catch (error) {
                 console.error('Error deleting store:', error);
                 alert('Failed to delete store');
             } finally {
-                setIsSaving(false);
+	    setIsSaving(false);
             }
         } else if (formType === 'product') {
             if (!selectedProduct) {
@@ -388,7 +460,7 @@ export default function AdminPortal() {
                     newImageUrl: '',
                     isChangable: true,
                     isUsed: false,
-		    quantity: 0,
+                    quantity: 0,
                     tags: [''],
                 };
                 setProductForm(initialForm);
@@ -428,7 +500,6 @@ export default function AdminPortal() {
     };
 
     const currencySymbol = currencyMap[productForm.address] || '$';
-
 return (
         <div className="py-12 px-6">
             <div className="pt-8">
@@ -446,13 +517,9 @@ return (
                                     if (!confirmDiscard) return;
                                 }
                                 setFormType(formType === 'product' ? 'store' : 'product');
-                                // Clear form when switching
                                 if (formType === 'product') {
-                                    setStoreForm({
-                                        name: '',
-                                        imageUrl: '',
-                                        introduce: '',
-                                    });
+                                    setStoreForm(initialStoreForm);
+                                    baselineStoreFormRef.current = initialStoreForm;
                                 } else {
                                     const initialForm = {
                                         title: '',
@@ -463,7 +530,7 @@ return (
                                         newImageUrl: '',
                                         isChangable: true,
                                         isUsed: false,
-					quantity: 0,
+                                        quantity: 0,
                                         tags: [''],
                                     };
                                     setProductForm(initialForm);
@@ -471,6 +538,7 @@ return (
                                 }
                                 setHasUnsavedChanges(false);
                                 isInitialSelection.current = true;
+                                isInitialStoreSelection.current = true;
                             }}
                         >
                             {formType === 'product' ? 'Edit Stores' : 'Back to Products'}
@@ -484,13 +552,38 @@ return (
                     <form className="space-y-4" onSubmit={handleFormSubmit}>
                         <div>
                             <label className="block text-sm font-medium mb-1">Store Name</label>
-                            <input
-                                type="text"
-                                className="w-full p-2 border rounded"
-                                value={storeForm.name}
-                                onChange={(e) => handleStoreFormChange('name', e.target.value)}
-                                required
-                            />
+                            <div className="relative" ref={storeDropdownRef}>
+                                <input
+                                    type="text"
+                                    className="w-full p-2 border rounded"
+                                    value={storeForm.name}
+                                    onChange={(e) => {
+                                        handleStoreFormChange('name', e.target.value);
+                                        setIsStoreDropdownOpen(true);
+                                    }}
+                                    onFocus={() => setIsStoreDropdownOpen(true)}
+                                    required
+                                />
+                                {isStoreDropdownOpen && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                                        <div
+                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer font-medium text-blue-600"
+                                            onClick={handleNewStore}
+                                        >
+                                            [New Store]
+                                        </div>
+                                        {shops.map((shop) => (
+                                            <div
+                                                key={shop.id}
+                                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                                onClick={() => handleStoreSelect(shop)}
+                                            >
+                                                {shop.name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Image URL</label>
@@ -510,7 +603,7 @@ return (
                                 rows={4}
                             />
                         </div>
-                        <div className="flex justify-center">
+                        <div className="flex justify-between">
                             <Button
                                 color="uclaBlue"
                                 size="md"
@@ -518,8 +611,18 @@ return (
                                 isLoading={isSaving}
                                 className="shadow-lg transform hover:scale-105 transition-transform"
                             >
-                                Add Store
+                                {selectedShop ? 'Update Store' : 'Add Store'}
                             </Button>
+                            {selectedShop && (
+                                <Button
+                                    color="red"
+                                    size="md"
+                                    onClick={handleDelete}
+                                    className="shadow-lg transform hover:scale-105 transition-transform"
+                                >
+                                    Delete Store
+                                </Button>
+                            )}
                         </div>
                     </form>
                 </div>
@@ -559,8 +662,14 @@ return (
                                     onFocus={() => setIsDropdownOpen(true)}
                                     required
                                 />
-                                {isDropdownOpen && products.length > 0 && (
+                                {isDropdownOpen && selectedShop && (
                                     <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                                        <div
+                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer font-medium text-blue-600"
+                                            onClick={handleNewProduct}
+                                        >
+                                            [New Product]
+                                        </div>
                                         {products.map((product) => (
                                             <div
                                                 key={product.id}
@@ -612,7 +721,6 @@ return (
                             />
                         </div>
 
-                        {/* Image URL section */}
                         <div>
                             <label className="block text-sm font-medium mb-1">Image URL</label>
                             <div className="relative" ref={imageUrlDropdownRef}>
@@ -651,41 +759,41 @@ return (
                             </div>
                         </div>
 
+                        <div className="flex items-start space-x-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    Quantity
+                                </label>
+                                <input
+                                    type="number"
+                                    className="p-2 border rounded"
+                                    value={productForm.quantity}
+                                    onChange={(e) => handleFormChange('quantity', parseInt(e.target.value))}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    <input
+                                        type="checkbox"
+                                        className="mr-2"
+                                        checked={productForm.isChangable}
+                                        onChange={(e) => handleFormChange('isChangable', e.target.checked)}
+                                    />
+                                    Can be returned
+                                </label>
+                                <label className="block text-sm font-medium mb-1">
+                                    <input
+                                        type="checkbox"
+                                        className="mr-2"
+                                        checked={productForm.isUsed}
+                                        onChange={(e) => handleFormChange('isUsed', e.target.checked)}
+                                    />
+                                    Is used
+                                </label>
+                            </div>
+                        </div>
 
-		<div className="flex items-start space-x-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">
-                                Quantity
-                            </label>
-                            <input
-                                type="number"
-                                className="p-2 border rounded"
-                                value={productForm.quantity}
-                                onChange={(e) => handleFormChange('quantity', e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">
-                                <input
-                                    type="checkbox"
-                                    className="mr-2"
-                                    checked={productForm.isChangable}
-                                    onChange={(e) => handleFormChange('isChangable', e.target.checked)}
-                                />
-                                Can be returned
-                            </label>
-                            <label className="block text-sm font-medium mb-1">
-                                <input
-                                    type="checkbox"
-                                    className="mr-2"
-                                    checked={productForm.isUsed}
-                                    onChange={(e) => handleFormChange('isUsed', e.target.checked)}
-                                />
-                                Is used
-                            </label>
-                        </div>
-		</div>
                         <div className="flex justify-between">
                             <Button
                                 color="uclaBlue"
@@ -694,16 +802,18 @@ return (
                                 isLoading={isSaving}
                                 className="shadow-lg transform hover:scale-105 transition-transform"
                             >
-                                Save Product
+                                {selectedProduct ? 'Update Product' : 'Add Product'}
                             </Button>
-                            <Button
-                                color="red"
-                                size="md"
-                                onClick={handleDelete}
-                                className="shadow-lg transform hover:scale-105 transition-transform"
-                            >
-                                Delete Product
-                            </Button>
+                            {selectedProduct && (
+                                <Button
+                                    color="red"
+                                    size="md"
+                                    onClick={handleDelete}
+                                    className="shadow-lg transform hover:scale-105 transition-transform"
+                                >
+                                    Delete Product
+                                </Button>
+                            )}
                         </div>
                     </form>
                 </div>
@@ -711,4 +821,3 @@ return (
         </div>
     );
 }
-

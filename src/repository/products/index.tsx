@@ -1,2 +1,2 @@
 export { default as getProducts } from './getProducts';
-export { getRecentProducts } from './getRecentProducts';
+export { default as getRecentProducts } from './getRecentProducts';

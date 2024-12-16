@@ -13,6 +13,8 @@ export type Shop = {
   imageUrl: string | null;
   introduce: string | null;
   createdAt: string;
+  followers: number;
+  product_count: number;
 };
 
 export type Product = {
@@ -47,7 +49,9 @@ export type Review = {
   userId: string;
   content: string;
   createdAt: string;
+  userName: string;
 };
+
 
 export type Follower = {
   id: string;

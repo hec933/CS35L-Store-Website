@@ -4,25 +4,26 @@ import Spinner from '@/components/common/Spinner';
 import Text from '@/components/common/Text';
 import { fetchWithAuthToken } from '@/utils/auth';
 
-//user cart control
 export default function Likes() {
     const [cartCount, setCartCount] = useState<number | undefined>(undefined);
 
     useEffect(() => {
-        const fetchCart = async () => {
-            try {
-                const cartResponse = await fetchWithAuthToken('/api/cart', 'POST', {
-                    action: 'fetch',
-                });
-                const cartItems = cartResponse.data;
-                setCartCount(cartItems.length);
-            } catch (error) {
-                console.error('Error fetching cart count:', error);
+        let mounted = true;
+
+        fetchWithAuthToken('/api/cart', 'POST', {
+            action: 'fetch',
+        }).then(({ data }) => {
+            if (mounted) {
+                setCartCount(data?.length || 0);
+            }
+        }).catch(error => {
+            console.error('Error fetching cart count:', error);
+            if (mounted) {
                 setCartCount(0);
             }
-        };
+        });
 
-        fetchCart();
+        return () => { mounted = false; };
     }, []);
 
     return (

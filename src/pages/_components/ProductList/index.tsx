@@ -23,7 +23,7 @@ export default function ProductList({ initialProducts = [] }: Props) {
         setIsLoading(true);
         const response = await fetchWithAuthToken('/api/products', 'POST', {
           action: 'fetchAll',
-	  fromPage, 
+          fromPage,
           toPage,
         });
         const { data }: { data: TProduct[] } = response;
@@ -59,8 +59,6 @@ export default function ProductList({ initialProducts = [] }: Props) {
     }
   }, [inView, isLastPage, isLoading, products.length, handleGetProducts]);
 
-  useEffect(() => { console.log('Products', products); }, [products]);
-
   return (
     <div className="my-8">
       {products.length ? (
@@ -75,8 +73,8 @@ export default function ProductList({ initialProducts = [] }: Props) {
                 title={title}
                 price={price}
                 image_url={image_urls[0] || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgEB/krH/aQAAAAASUVORK5CYII='}
-		created_at={created_at}
-		quantity={quantity}
+                created_at={created_at}
+                quantity={quantity}
               />
             </Link>
           ))}
